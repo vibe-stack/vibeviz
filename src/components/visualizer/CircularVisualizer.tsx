@@ -59,7 +59,7 @@ export const CircularVisualizer = ({
       return {
         basePosition,
         direction,
-        rotation: [0, -angle, 0] as [number, number, number],
+        rotation: [0, -angle + Math.PI/2, 0] as [number, number, number],
         index: i,
       };
     });
@@ -93,7 +93,9 @@ export const CircularVisualizer = ({
         } else {
           const thickness = 0.35;
           child.scale.set(thickness, thickness, growth * 1.2);
-          const offset = settings.radius + (child.scale.z / 2);
+          // Position bars so they grow outward from radius (0.28 is the original geometry Z size)
+          const actualLength = 0.28 * growth * 1.2;
+          const offset = settings.radius + actualLength / 2;
           child.position.set(
             bar.direction.x * offset,
             thickness / 2,
@@ -114,7 +116,7 @@ export const CircularVisualizer = ({
   });
 
   return (
-    <group ref={groupRef}>
+    <group ref={groupRef} rotation={[Math.PI/2, 0, 0]}>
       {bars.map((bar) => (
         <mesh key={bar.index} rotation={bar.rotation}>
           <boxGeometry args={[0.28, 1, 0.28]} />
