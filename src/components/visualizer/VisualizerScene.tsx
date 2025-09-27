@@ -5,12 +5,12 @@ import { Canvas, ThreeToJSXElements, extend } from "@react-three/fiber";
 import { useSnapshot } from "valtio";
 import * as THREE from "three/webgpu";
 import { CircularVisualizer } from "./CircularVisualizer";
-import { ParticleField } from "./ParticleField";
+import { ParticleSystem } from "./particles/ParticleSystem";
 import { AnimatedShaderRenderer } from "./AnimatedShaderRenderer";
 import { visualizerStore } from "@/state/visualizer-store";
 
 declare module "@react-three/fiber" {
-  interface ThreeElements extends ThreeToJSXElements<typeof THREE> {}
+  interface ThreeElements extends ThreeToJSXElements<typeof THREE> { }
 }
 
 extend(THREE as any);
@@ -67,12 +67,14 @@ export const VisualizerScene = ({ getFrequencyData }: VisualizerSceneProps) => {
           />
         )}
 
-        {visualizer.particles.enabled && (
-          <ParticleField
-            getFrequencyData={getFrequencyData}
-            settings={visualizer.particles}
-          />
-        )}
+        <group rotation={[-Math.PI / 2, 0, 0]}>
+          {visualizer.particles.enabled && (
+            <ParticleSystem
+              getFrequencyData={getFrequencyData}
+              settings={visualizer.particles}
+            />
+          )}
+        </group>
 
         <AnimatedShaderRenderer
           shader={visualizer.shader}
