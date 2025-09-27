@@ -138,6 +138,11 @@ export const SettingsPanel = () => {
         label: "Fragments",
         description: "Neon shards spiral and shimmer with every transient.",
       },
+      {
+        value: "smoke",
+        label: "Smoke Drift",
+        description: "Billowing clouds that quicken with the music's pulse.",
+      },
     ],
     [],
   );
@@ -657,6 +662,70 @@ export const SettingsPanel = () => {
                 precision={2}
                 min={0.6}
                 max={2.8}
+              />
+            </SectionCard>
+          )}
+
+          {visualizer.shader === "smoke" && (
+            <SectionCard title="Smoke Parameters">
+              <ColorSwatch
+                label="Color"
+                value={visualizer.shaderSettings.smoke.color}
+                onChange={(value) =>
+                  visualizerActions.updateShader("smoke", { color: value })
+                }
+              />
+              <DragInput
+                label="Intensity"
+                value={visualizer.shaderSettings.smoke.intensity}
+                onChange={(value) =>
+                  visualizerActions.updateShader("smoke", {
+                    intensity: clamp(value, 0.2, 1.5),
+                  })
+                }
+                step={0.02}
+                precision={2}
+                min={0.2}
+                max={1.5}
+              />
+              <DragInput
+                label="Speed"
+                value={visualizer.shaderSettings.smoke.speed}
+                onChange={(value) =>
+                  visualizerActions.updateShader("smoke", {
+                    speed: clamp(value, 0.05, 1.2),
+                  })
+                }
+                step={0.02}
+                precision={2}
+                min={0.05}
+                max={1.2}
+              />
+              <DragInput
+                label="Contrast"
+                value={visualizer.shaderSettings.smoke.contrast}
+                onChange={(value) =>
+                  visualizerActions.updateShader("smoke", {
+                    contrast: clamp(value, 0.4, 2.4),
+                  })
+                }
+                step={0.02}
+                precision={2}
+                min={0.4}
+                max={2.4}
+              />
+              <DragInput
+                label="Scale"
+                value={visualizer.shaderSettings.smoke.scale}
+                onChange={(value) =>
+                  visualizerActions.updateShader("smoke", {
+                    scale: clamp(value, 0.6, 1.8),
+                  })
+                }
+                step={0.02}
+                precision={2}
+                min={0.6}
+                max={1.8}
               />
             </SectionCard>
           )}

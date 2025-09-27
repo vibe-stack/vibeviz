@@ -6,9 +6,7 @@ import { useSnapshot } from "valtio";
 import * as THREE from "three/webgpu";
 import { CircularVisualizer } from "./CircularVisualizer";
 import { ParticleField } from "./ParticleField";
-import { AuroraShader } from "./shaders/AuroraShader";
-import { PulseGridShader } from "./shaders/PulseGridShader";
-import { FragmentsShader } from "./shaders/FragmentsShader";
+import { AnimatedShaderRenderer } from "./AnimatedShaderRenderer";
 import { visualizerStore } from "@/state/visualizer-store";
 
 declare module "@react-three/fiber" {
@@ -76,28 +74,11 @@ export const VisualizerScene = ({ getFrequencyData }: VisualizerSceneProps) => {
           />
         )}
 
-        <group scale={[4, 4, 1]}>
-        {visualizer.shader === "aurora" && (
-          <AuroraShader
-            getFrequencyData={getFrequencyData}
-            settings={visualizer.shaderSettings.aurora}
-          />
-        )}
-
-        {visualizer.shader === "pulseGrid" && (
-          <PulseGridShader
-            getFrequencyData={getFrequencyData}
-            settings={visualizer.shaderSettings.pulseGrid}
-          />
-        )}
-
-        {visualizer.shader === "fragments" && (
-          <FragmentsShader
-            getFrequencyData={getFrequencyData}
-            settings={visualizer.shaderSettings.fragments}
-          />
-        )}
-        </group>
+        <AnimatedShaderRenderer
+          shader={visualizer.shader}
+          getFrequencyData={getFrequencyData}
+          settings={visualizer.shaderSettings}
+        />
 
         <OrbitControls
           enablePan={false}
