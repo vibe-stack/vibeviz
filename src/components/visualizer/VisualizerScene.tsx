@@ -1,19 +1,20 @@
 "use client";
 
 import { OrbitControls, Environment } from "@react-three/drei";
-import { Canvas, ThreeToJSXElements, extend } from "@react-three/fiber";
-import { useSnapshot } from "valtio";
+import { Canvas, type ThreeToJSXElements, extend } from "@react-three/fiber";
 import * as THREE from "three/webgpu";
+import { useSnapshot } from "valtio";
+import { visualizerStore } from "@/state/visualizer-store";
+import { AnimatedShaderRenderer } from "./AnimatedShaderRenderer";
 import { CircularVisualizer } from "./CircularVisualizer";
 import { ParticleSystem } from "./particles/ParticleSystem";
-import { AnimatedShaderRenderer } from "./AnimatedShaderRenderer";
-import { visualizerStore } from "@/state/visualizer-store";
+import { ShapesVisualizer } from "./shapes/ShapesVisualizer";
 
 declare module "@react-three/fiber" {
-  interface ThreeElements extends ThreeToJSXElements<typeof THREE> { }
+  interface ThreeElements extends ThreeToJSXElements<typeof THREE> {}
 }
 
-extend(THREE as any);
+extend(THREE as unknown as Record<string, unknown>);
 
 interface VisualizerSceneProps {
   getFrequencyData: () => Uint8Array;
@@ -26,8 +27,11 @@ export const VisualizerScene = ({ getFrequencyData }: VisualizerSceneProps) => {
     <div className="h-full w-full">
       <Canvas
         camera={{ position: [0, 7.5, 12], fov: 52 }}
-        gl={async (props) => {
-          const renderer = new THREE.WebGPURenderer(props as any);
+        gl={async (canvas: HTMLCanvasElement) => {
+          const renderer = new THREE.WebGPURenderer({
+            canvas,
+            antialias: true,
+          });
           await renderer.init();
           return renderer;
         }}
@@ -58,6 +62,11 @@ export const VisualizerScene = ({ getFrequencyData }: VisualizerSceneProps) => {
           position={[-6, 4, -4]}
           intensity={visualizer.world.fillLightIntensity}
           color="#f87171"
+        />
+
+        <ShapesVisualizer
+          getFrequencyData={getFrequencyData}
+          settings={visualizer.shapes}
         />
 
         {visualizer.bars.enabled && (

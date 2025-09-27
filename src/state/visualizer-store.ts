@@ -7,13 +7,78 @@ export type ShaderPreset =
   | "fragments"
   | "smoke";
 export type BarScaleMode = "vertical" | "radial";
-export type ParticleMode = "vortex" | "bursts" | "orbits" | "ribbons" | "nebula";
+export type ParticleMode =
+  | "vortex"
+  | "bursts"
+  | "orbits"
+  | "ribbons"
+  | "nebula";
 export type ParticleBlendMode = "normal" | "additive" | "screen";
+export type ShapeType =
+  | "cube"
+  | "sphere"
+  | "heart"
+  | "star"
+  | "torus"
+  | "arrow"
+  | "pyramid"
+  | "tetrahedron";
+
+export type ShapeRotationMode =
+  | "slowDownOnBeat"
+  | "speedUpOnBeat"
+  | "reverseOnBeat"
+  | "temporaryReverseOnBeat";
+
+export type ShapeScaleMode =
+  | "slowDownOnBeat"
+  | "speedUpOnBeat"
+  | "reverseOnBeat"
+  | "temporaryReverseOnBeat"
+  | "heartbeat";
 
 export interface MaterialSettings {
   color: string;
   metalness: number;
   roughness: number;
+}
+
+export interface Vector3Config {
+  x: number;
+  y: number;
+  z: number;
+}
+
+export interface ShapeMaterialSettings extends MaterialSettings {
+  emissive: string;
+  emissiveIntensity: number;
+}
+
+export interface ShapeRotationSettings {
+  enabled: boolean;
+  speed: number;
+  axis: Vector3Config;
+  mode: ShapeRotationMode;
+}
+
+export interface ShapeScaleSettings {
+  enabled: boolean;
+  speed: number;
+  min: number;
+  max: number;
+  mode: ShapeScaleMode;
+}
+
+export interface ShapesSettings {
+  enabled: boolean;
+  type: ShapeType;
+  baseScale: number;
+  baseRotation: Vector3Config;
+  material: ShapeMaterialSettings;
+  animation: {
+    rotate: ShapeRotationSettings;
+    scale: ShapeScaleSettings;
+  };
 }
 
 export interface BarsSettings {
@@ -139,6 +204,7 @@ export interface VisualizerStore {
   shader: ShaderPreset;
   bars: BarsSettings;
   particles: ParticleSettings;
+  shapes: ShapesSettings;
   shaderSettings: ShaderPresetSettings;
   world: WorldSettings;
 }
@@ -157,6 +223,14 @@ const defaultParticleMaterial = (color: string): ParticleMaterialSettings => ({
   opacity: 0.85,
   emissiveIntensity: 1.45,
   fresnel: 1.2,
+});
+
+const defaultShapeMaterial = (color: string): ShapeMaterialSettings => ({
+  color,
+  metalness: 0.55,
+  roughness: 0.35,
+  emissive: color,
+  emissiveIntensity: 0.8,
 });
 
 export const visualizerStore = proxy<VisualizerStore>({
@@ -224,6 +298,28 @@ export const visualizerStore = proxy<VisualizerStore>({
         curlStrength: 0.65,
         shimmer: 0.6,
         fade: 0.52,
+      },
+    },
+  },
+  shapes: {
+    enabled: true,
+    type: "sphere",
+    baseScale: 1.4,
+    baseRotation: { x: 0, y: 0, z: 0 },
+    material: defaultShapeMaterial("#22d3ee"),
+    animation: {
+      rotate: {
+        enabled: true,
+        speed: 0.8,
+        axis: { x: 0, y: 1, z: 0 },
+        mode: "speedUpOnBeat",
+      },
+      scale: {
+        enabled: true,
+        speed: 1.1,
+        min: 0.8,
+        max: 1.25,
+        mode: "heartbeat",
       },
     },
   },
@@ -301,6 +397,27 @@ export const visualizerActions = {
     partial: Partial<ParticlePresetSettings[K]>,
   ) {
     Object.assign(visualizerStore.particles.presets[preset], partial);
+  },
+  toggleShapes(enabled?: boolean) {
+    visualizerStore.shapes.enabled = enabled ?? !visualizerStore.shapes.enabled;
+  },
+  updateShapes(partial: Partial<ShapesSettings>) {
+    Object.assign(visualizerStore.shapes, partial);
+  },
+  updateShapeMaterial(partial: Partial<ShapeMaterialSettings>) {
+    Object.assign(visualizerStore.shapes.material, partial);
+  },
+  updateShapeBaseRotation(partial: Partial<Vector3Config>) {
+    Object.assign(visualizerStore.shapes.baseRotation, partial);
+  },
+  updateShapeRotation(partial: Partial<ShapeRotationSettings>) {
+    Object.assign(visualizerStore.shapes.animation.rotate, partial);
+  },
+  updateShapeRotationAxis(partial: Partial<Vector3Config>) {
+    Object.assign(visualizerStore.shapes.animation.rotate.axis, partial);
+  },
+  updateShapeScale(partial: Partial<ShapeScaleSettings>) {
+    Object.assign(visualizerStore.shapes.animation.scale, partial);
   },
   updateShader<K extends keyof ShaderPresetSettings>(
     preset: K,

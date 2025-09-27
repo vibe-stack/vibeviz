@@ -1,15 +1,15 @@
 "use client";
 
 import { Tabs } from "@base-ui-components/react/tabs";
-import { Shapes, Sparkles, Globe2 } from "lucide-react";
+import { Globe2, Shapes, Sparkles } from "lucide-react";
 import { cn } from "@/utils/tailwind";
 import { BarsSection } from "./BarsSection";
 import { ParticlesSection } from "./ParticlesSection";
 import { ShadersSection } from "./ShadersSection";
+import { ShapesSection } from "./ShapesSection";
 import { WorldSection } from "./WorldSection";
 
 export const SettingsPanel = () => {
-
   return (
     <aside className="flex h-full w-96 flex-col border-l border-zinc-800/60 bg-zinc-950/60 backdrop-blur-sm">
       <div className="border-b border-zinc-800/60 p-5">
@@ -45,6 +45,7 @@ export const SettingsPanel = () => {
           value="primitives"
           className="flex-1 space-y-6 overflow-y-auto px-5 pb-8 pt-4 max-h-[80dvh]"
         >
+          <ShapesSection />
           <BarsSection />
           <ParticlesSection />
         </Tabs.Panel>
