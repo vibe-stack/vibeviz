@@ -8,6 +8,7 @@ import { CircularVisualizer } from "./CircularVisualizer";
 import { ParticleField } from "./ParticleField";
 import { AuroraShader } from "./shaders/AuroraShader";
 import { PulseGridShader } from "./shaders/PulseGridShader";
+import { FragmentsShader } from "./shaders/FragmentsShader";
 import { visualizerStore } from "@/state/visualizer-store";
 
 declare module "@react-three/fiber" {
@@ -34,31 +35,48 @@ export const VisualizerScene = ({ getFrequencyData }: VisualizerSceneProps) => {
         }}
         className="bg-zinc-950"
       >
-        <color attach="background" args={["#09090b"]} />
-        <fog attach="fog" args={["#0f172a", 12, 42]} />
+        <color attach="background" args={[visualizer.world.background]} />
+        {visualizer.world.fog.enabled ? (
+          <fog
+            attach="fog"
+            args={[
+              visualizer.world.fog.color,
+              visualizer.world.fog.near,
+              visualizer.world.fog.far,
+            ]}
+          />
+        ) : null}
 
-        <ambientLight intensity={0.35} color="#94a3b8" />
+        <ambientLight
+          intensity={visualizer.world.ambientIntensity}
+          color="#94a3b8"
+        />
         <directionalLight
           position={[6, 10, 6]}
-          intensity={0.8}
+          intensity={visualizer.world.keyLightIntensity}
           color="#38bdf8"
         />
-        <directionalLight position={[-6, 4, -4]} intensity={0.45} color="#f87171" />
+        <directionalLight
+          position={[-6, 4, -4]}
+          intensity={visualizer.world.fillLightIntensity}
+          color="#f87171"
+        />
 
-        {visualizer.mode === "circular" && (
+        {visualizer.bars.enabled && (
           <CircularVisualizer
             getFrequencyData={getFrequencyData}
-            settings={visualizer.circular}
+            settings={visualizer.bars}
           />
         )}
 
-        {visualizer.mode === "particles" && (
+        {visualizer.particles.enabled && (
           <ParticleField
             getFrequencyData={getFrequencyData}
             settings={visualizer.particles}
           />
         )}
 
+        <group scale={[4, 4, 1]}>
         {visualizer.shader === "aurora" && (
           <AuroraShader
             getFrequencyData={getFrequencyData}
@@ -73,12 +91,20 @@ export const VisualizerScene = ({ getFrequencyData }: VisualizerSceneProps) => {
           />
         )}
 
+        {visualizer.shader === "fragments" && (
+          <FragmentsShader
+            getFrequencyData={getFrequencyData}
+            settings={visualizer.shaderSettings.fragments}
+          />
+        )}
+        </group>
+
         <OrbitControls
           enablePan={false}
-          minDistance={8}
-          maxDistance={20}
-          minPolarAngle={0.2}
-          maxPolarAngle={Math.PI / 2.2}
+          // minDistance={8}
+          // maxDistance={20}
+          // minPolarAngle={0.2}
+          // maxPolarAngle={Math.PI / 2.2}
           enableDamping
           dampingFactor={0.12}
         />

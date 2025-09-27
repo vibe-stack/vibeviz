@@ -7,6 +7,8 @@ interface TimelineProps {
   duration: number;
   waveform: Float32Array;
   onSeek: (time: number) => void;
+  onFileSelect?: (file: File) => void;
+  isLoading?: boolean;
 }
 
 export const Timeline = ({
@@ -14,6 +16,8 @@ export const Timeline = ({
   duration,
   waveform,
   onSeek,
+  onFileSelect,
+  isLoading = false,
 }: TimelineProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const timelineRef = useRef<HTMLDivElement>(null);
@@ -30,6 +34,26 @@ export const Timeline = ({
       onSeek(time);
     },
     [duration, onSeek],
+  );
+
+  const handleDrop = useCallback(
+    (event: React.DragEvent<HTMLDivElement>) => {
+      event.preventDefault();
+      if (!onFileSelect) return;
+
+      const file = event.dataTransfer.files[0];
+      if (file && file.type.startsWith("audio/")) {
+        onFileSelect(file);
+      }
+    },
+    [onFileSelect],
+  );
+
+  const handleDragOver = useCallback(
+    (event: React.DragEvent<HTMLDivElement>) => {
+      event.preventDefault();
+    },
+    [],
   );
 
   const formatTime = (time: number) => {
@@ -94,19 +118,49 @@ export const Timeline = ({
         ref={timelineRef}
         className="relative h-16 cursor-pointer rounded-lg overflow-hidden bg-zinc-800/30"
         onClick={handleClick}
+        onDrop={handleDrop}
+        onDragOver={handleDragOver}
       >
         <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" />
 
         {/* Playhead */}
-        <div
-          className="absolute top-0 bottom-0 w-0.5 bg-white shadow-lg pointer-events-none"
-          style={{ left: `${(currentTime / duration) * 100}%` }}
-        />
+        {duration > 0 && (
+          <div
+            className="absolute top-0 bottom-0 w-0.5 bg-white shadow-lg pointer-events-none"
+            style={{ left: `${(currentTime / duration) * 100}%` }}
+          />
+        )}
+
+        {/* Drop zone overlay */}
+        {waveform.length === 0 && (
+          <div className="absolute inset-0 flex items-center justify-center bg-zinc-800/50">
+            <div className="text-center">
+              <div className="w-8 h-8 mx-auto mb-2 bg-zinc-700/50 rounded-lg flex items-center justify-center">
+                <svg
+                  className="w-4 h-4 text-zinc-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 19V6l12-3v13M9 19c0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2 2 .9 2 2zm12-3c0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2 2 .9 2 2zM9 10l12-3"
+                  />
+                </svg>
+              </div>
+              <p className="text-sm text-zinc-400">
+                {isLoading ? "Loading audio..." : "Drop MP3 file here"}
+              </p>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="flex justify-between text-sm text-zinc-400 px-1">
         <span>{formatTime(currentTime)}</span>
-        <span>{formatTime(duration)}</span>
+        <span>{formatTime(duration || 0)}</span>
       </div>
     </div>
   );

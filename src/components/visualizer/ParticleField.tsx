@@ -13,17 +13,11 @@ import {
   Quaternion,
 } from "three/webgpu";
 import { usePlaybackTimeRef } from "@/context/playback-time-context";
+import type { ParticleSettings } from "@/state/visualizer-store";
 
 interface ParticleFieldProps {
   getFrequencyData: () => Uint8Array;
-  settings: {
-    count: number;
-    size: number;
-    spread: number;
-    velocity: number;
-    trail: number;
-    shape: "sphere" | "cube";
-  };
+  settings: ParticleSettings;
 }
 
 interface ParticleData {
@@ -33,9 +27,6 @@ interface ParticleData {
   swirlOffsets: Float32Array;
   energy: Float32Array;
 }
-
-const COLOR_INNER = new Color("#f59e0b");
-const COLOR_OUTER = new Color("#38bdf8");
 
 const createParticleData = (count: number, spread: number): ParticleData => {
   const baseDirections = new Float32Array(count * 3);
@@ -74,6 +65,10 @@ const geometryForShape = (shape: "sphere" | "cube") => {
 };
 
 export const ParticleField = ({ getFrequencyData, settings }: ParticleFieldProps) => {
+  if (!settings.enabled) {
+    return null;
+  }
+
   const meshRef = useRef<InstancedMesh>(null);
   const dataRef = useRef<ParticleData | null>(null);
   const playbackTimeRef = usePlaybackTimeRef();
@@ -82,19 +77,22 @@ export const ParticleField = ({ getFrequencyData, settings }: ParticleFieldProps
   const dummyScale = useMemo(() => new Vector3(1, 1, 1), []);
   const dummyQuaternion = useMemo(() => new Quaternion(), []);
 
+  const baseColor = useMemo(
+    () => new Color(settings.material.color),
+    [settings.material.color],
+  );
+  const highlightColor = useMemo(() => {
+    const c = new Color(settings.material.color);
+    return c.lerp(new Color("#ffffff"), 0.5);
+  }, [settings.material.color]);
+
   const geometry = useMemo(
     () => geometryForShape(settings.shape),
     [settings.shape],
   );
 
   const material = useMemo(() => {
-    const mat = new MeshStandardMaterial({
-      color: COLOR_OUTER,
-      emissive: 0x0f172a,
-      emissiveIntensity: 0.35,
-      roughness: 0.35,
-      metalness: 0.15,
-    });
+    const mat = new MeshStandardMaterial();
     mat.transparent = true;
     return mat;
   }, []);
@@ -171,7 +169,7 @@ export const ParticleField = ({ getFrequencyData, settings }: ParticleFieldProps
       mesh.setMatrixAt(i, dummyMatrix);
 
       const colorMix = Math.min(1, energy[i] * 1.4 + sparkle * 0.6);
-      const color = COLOR_INNER.clone().lerp(COLOR_OUTER, colorMix);
+      const color = baseColor.clone().lerp(highlightColor, colorMix);
       mesh.setColorAt(i, color);
     }
 
@@ -180,7 +178,12 @@ export const ParticleField = ({ getFrequencyData, settings }: ParticleFieldProps
       mesh.instanceColor.needsUpdate = true;
     }
 
-    material.emissiveIntensity = 0.25 + Math.min(0.75, sparkle + midAvg * 0.6);
+    material.color.copy(highlightColor);
+    material.metalness = settings.material.metalness;
+    material.roughness = settings.material.roughness;
+    material.emissive
+      .copy(baseColor)
+      .multiplyScalar(0.25 + Math.min(0.75, sparkle + midAvg * 0.6));
   });
 
   return (
