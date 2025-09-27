@@ -1,26 +1,16 @@
 "use client";
 
-import { useState, useCallback } from "react";
-import { useAudio } from "../hooks/useAudio";
-import { FileUpload } from "./audio/FileUpload";
-import { VisualizerScene } from "./visualizer/VisualizerScene";
-import { Timeline } from "./timeline/Timeline";
-import { PlaybackControls } from "./timeline/PlaybackControls";
-import { SettingsPanel } from "./settings/SettingsPanel";
+import { useCallback } from "react";
+import { useAudio } from "@/hooks/useAudio";
+import { FileUpload } from "@/components/audio/FileUpload";
+import { VisualizerScene } from "@/components/visualizer/VisualizerScene";
+import { Timeline } from "@/components/timeline/Timeline";
+import { PlaybackControls } from "@/components/timeline/PlaybackControls";
+import { SettingsPanel } from "@/components/settings/SettingsPanel";
 
 export const MusicVisualizer = () => {
-  const {
-    audioData,
-    audioState,
-    loadAudio,
-    play,
-    pause,
-    seek,
-    setVolume,
-    getFrequencyData,
-  } = useAudio();
-  const [radius, setRadius] = useState(5);
-  const [maxBarHeight, setMaxBarHeight] = useState(3);
+  const { audio, loadAudio, play, pause, seek, setVolume, getFrequencyData } =
+    useAudio();
 
   const handleFileSelect = useCallback(
     async (file: File) => {
@@ -29,70 +19,54 @@ export const MusicVisualizer = () => {
     [loadAudio],
   );
 
-  const frequencyData = getFrequencyData();
+  const hasAudio = Boolean(audio.data);
 
   return (
-    <div className="h-screen bg-gradient-to-br from-zinc-950 via-zinc-900 to-zinc-950 overflow-hidden">
-      {/* Settings Panel */}
-      {audioData && (
-        <SettingsPanel
-          radius={radius}
-          maxBarHeight={maxBarHeight}
-          onRadiusChange={setRadius}
-          onMaxBarHeightChange={setMaxBarHeight}
-        />
-      )}
+    <div className="relative h-screen overflow-hidden bg-gradient-to-br from-zinc-950 via-zinc-900 to-zinc-950">
+      {hasAudio && <SettingsPanel />}
 
-      <div className="h-full flex flex-col">
-        {/* Main Content */}
-        <div className="flex-1 flex items-center justify-center p-8">
-          {!audioData ? (
-            <div className="max-w-md w-full">
-              <div className="text-center mb-8">
-                <h1 className="text-4xl font-bold text-zinc-100 mb-2">
+      <div className="flex h-full flex-col">
+        <div className="flex flex-1 items-center justify-center p-8">
+          {!hasAudio ? (
+            <div className="w-full max-w-md">
+              <div className="mb-8 text-center">
+                <h1 className="mb-2 text-4xl font-semibold tracking-tight text-zinc-100">
                   VibeViz
                 </h1>
-                <p className="text-zinc-400">
-                  Upload an MP3 file to start visualizing
+                <p className="text-sm text-zinc-400">
+                  Upload your track to unlock immersive visual modes.
                 </p>
               </div>
               <FileUpload
                 onFileSelect={handleFileSelect}
-                isLoading={audioState.isLoading}
+                isLoading={audio.isLoading}
               />
-              {audioState.error && (
-                <div className="mt-4 p-3 bg-red-900/20 border border-red-800/50 rounded-lg text-red-200 text-sm">
-                  {audioState.error}
+              {audio.error && (
+                <div className="mt-4 rounded-lg border border-red-800/40 bg-red-900/20 p-3 text-sm text-red-200">
+                  {audio.error}
                 </div>
               )}
             </div>
           ) : (
-            <div className="w-full h-full">
-              <VisualizerScene
-                frequencyData={frequencyData}
-                radius={radius}
-                maxBarHeight={maxBarHeight}
-              />
-            </div>
+            <VisualizerScene getFrequencyData={getFrequencyData} />
           )}
         </div>
 
-        {/* Bottom Controls */}
-        {audioData && (
-          <div className="p-6 space-y-4">
+        {hasAudio && audio.data && (
+          <div className="space-y-4 p-6">
             <Timeline
-              currentTime={audioState.currentTime}
-              duration={audioState.duration}
-              waveform={audioData.waveform}
+              currentTime={audio.currentTime}
+              duration={audio.duration}
+              waveform={audio.data.waveform}
               onSeek={seek}
             />
             <PlaybackControls
-              isPlaying={audioState.isPlaying}
+              isPlaying={audio.isPlaying}
               onPlay={play}
               onPause={pause}
-              volume={audioState.volume}
+              volume={audio.volume}
               onVolumeChange={setVolume}
-              disabled={audioState.isLoading}
+              disabled={audio.isLoading}
             />
           </div>
         )}

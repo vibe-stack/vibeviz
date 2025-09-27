@@ -10,10 +10,12 @@
     "format": "biome format --write"
   },
   "dependencies": {
+    "@base-ui-components/react": "1.0.0-beta.3",
     "@react-three/drei": "^10.7.6",
     "@react-three/fiber": "^9.3.0",
     "@types/three": "^0.180.0",
     "clsx": "^2.1.1",
+    "lucide-react": "^0.544.0",
     "mediabunny": "^1.21.0",
     "next": "15.5.4",
     "react": "19.1.0",

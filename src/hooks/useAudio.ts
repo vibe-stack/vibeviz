@@ -1,184 +1,214 @@
-import { useState, useRef, useCallback, useEffect } from "react";
-import { AudioProcessor, type AudioData } from "../utils/audio";
-
-export interface AudioState {
-  isPlaying: boolean;
-  currentTime: number;
-  duration: number;
-  volume: number;
-  isLoading: boolean;
-  error: string | null;
-}
+import { useCallback, useEffect, useRef } from "react";
+import { useSnapshot, snapshot as getSnapshot } from "valtio";
+import { AudioProcessor } from "@/utils/audio";
+import { audioActions, audioStore } from "@/state/audio-store";
+import { usePlaybackTimeRef } from "@/context/playback-time-context";
 
 export const useAudio = () => {
-  const [audioData, setAudioData] = useState<AudioData | null>(null);
-  const [audioState, setAudioState] = useState<AudioState>({
-    isPlaying: false,
-    currentTime: 0,
-    duration: 0,
-    volume: 1,
-    isLoading: false,
-    error: null,
-  });
+  const snapshot = useSnapshot(audioStore);
+  const playbackTimeRef = usePlaybackTimeRef();
 
   const audioProcessorRef = useRef<AudioProcessor | null>(null);
   const sourceRef = useRef<AudioBufferSourceNode | null>(null);
   const gainNodeRef = useRef<GainNode | null>(null);
-  const startTimeRef = useRef<number>(0);
-  const pauseTimeRef = useRef<number>(0);
+  const analyserConnectedRef = useRef(false);
+  const startTimeRef = useRef(0);
+  const pauseTimeRef = useRef(0);
   const animationFrameRef = useRef<number | null>(null);
+  const frequencyArrayRef = useRef(new Uint8Array(256));
 
   const initializeAudioProcessor = useCallback(() => {
     if (!audioProcessorRef.current) {
       audioProcessorRef.current = new AudioProcessor();
-    }
-    return audioProcessorRef.current;
-  }, []);
-
-  const loadAudio = useCallback(
-    async (file: File) => {
-      setAudioState((prev) => ({ ...prev, isLoading: true, error: null }));
-
-      try {
-        const processor = initializeAudioProcessor();
-        const data = await processor.loadAudioFile(file);
-
-        setAudioData(data);
-        setAudioState((prev) => ({
-          ...prev,
-          duration: data.duration,
-          isLoading: false,
-        }));
-      } catch (error) {
-        setAudioState((prev) => ({
-          ...prev,
-          error:
-            error instanceof Error ? error.message : "Failed to load audio",
-          isLoading: false,
-        }));
-      }
-    },
-    [initializeAudioProcessor],
-  );
-
-  const updateCurrentTime = useCallback(() => {
-    if (audioState.isPlaying && audioProcessorRef.current) {
-      const elapsed =
-        audioProcessorRef.current.context.currentTime -
-        startTimeRef.current +
-        pauseTimeRef.current;
-
-      if (elapsed >= audioState.duration) {
-        setAudioState((prev) => ({
-          ...prev,
-          isPlaying: false,
-          currentTime: audioState.duration,
-        }));
-        return;
-      }
-
-      setAudioState((prev) => ({ ...prev, currentTime: elapsed }));
-      animationFrameRef.current = requestAnimationFrame(updateCurrentTime);
-    }
-  }, [audioState.isPlaying, audioState.duration]);
-
-  const play = useCallback(() => {
-    if (!audioData || !audioProcessorRef.current) return;
-
-    // Stop existing source
-    if (sourceRef.current) {
-      sourceRef.current.stop();
-      sourceRef.current.disconnect();
-    }
-
-    const source = audioProcessorRef.current.context.createBufferSource();
-    source.buffer = audioData.buffer;
-
-    // Create gain node for volume control if it doesn't exist
-    if (!gainNodeRef.current) {
-      gainNodeRef.current = audioProcessorRef.current.context.createGain();
-      gainNodeRef.current.connect(
-        audioProcessorRef.current.context.destination,
+      frequencyArrayRef.current = new Uint8Array(
+        audioProcessorRef.current.analyserNode.frequencyBinCount,
       );
     }
 
-    // Set volume
-    gainNodeRef.current.gain.value = audioState.volume;
+    return audioProcessorRef.current;
+  }, []);
 
-    // Connect source -> analyser -> gain -> destination for real-time frequency data
-    source.connect(audioProcessorRef.current.analyserNode);
-    audioProcessorRef.current.analyserNode.connect(gainNodeRef.current);
+  const stopSource = useCallback(() => {
+    if (sourceRef.current) {
+      try {
+        sourceRef.current.stop();
+      } catch (error) {
+        // ignore
+      }
+      sourceRef.current.disconnect();
+      sourceRef.current.onended = null;
+      sourceRef.current = null;
+    }
+  }, []);
 
-    startTimeRef.current = audioProcessorRef.current.context.currentTime;
+  const cancelLoop = useCallback(() => {
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = null;
+    }
+  }, []);
+
+  const updateLoop = useCallback(() => {
+    const processor = audioProcessorRef.current;
+    if (!processor) return;
+
+    const state = getSnapshot(audioStore);
+    if (!state.isPlaying) return;
+
+    const current =
+      processor.context.currentTime - startTimeRef.current + pauseTimeRef.current;
+    const clamped = Math.min(current, state.duration || 0);
+
+    audioActions.setCurrentTime(clamped);
+    playbackTimeRef.current = clamped;
+
+    if (current >= (state.duration || 0)) {
+      audioActions.setPlaying(false);
+      pauseTimeRef.current = 0;
+      stopSource();
+      cancelLoop();
+      return;
+    }
+
+    animationFrameRef.current = requestAnimationFrame(updateLoop);
+  }, [cancelLoop, playbackTimeRef, stopSource]);
+
+  const loadAudio = useCallback(
+    async (file: File) => {
+      const processor = initializeAudioProcessor();
+      cancelLoop();
+      stopSource();
+      audioActions.setLoading(true);
+      audioActions.setError(null);
+      audioActions.setPlaying(false);
+
+      try {
+        const data = await processor.loadAudioFile(file);
+        frequencyArrayRef.current = new Uint8Array(
+          processor.analyserNode.frequencyBinCount,
+        );
+
+        audioActions.setData(data);
+        audioActions.setCurrentTime(0);
+        playbackTimeRef.current = 0;
+        pauseTimeRef.current = 0;
+      } catch (error) {
+        audioActions.setError(
+          error instanceof Error ? error.message : "Failed to load audio",
+        );
+      } finally {
+        audioActions.setLoading(false);
+      }
+    },
+    [cancelLoop, initializeAudioProcessor, playbackTimeRef, stopSource],
+  );
+
+  const play = useCallback(() => {
+    const data = getSnapshot(audioStore).data;
+    const processor = initializeAudioProcessor();
+    if (!data || !processor) return;
+
+    void processor.context.resume();
+
+    cancelLoop();
+    stopSource();
+
+    const source = processor.context.createBufferSource();
+    source.buffer = data.buffer;
+
+    source.onended = () => {
+      audioActions.setPlaying(false);
+      const { duration } = getSnapshot(audioStore);
+      const endTime = duration || 0;
+      audioActions.setCurrentTime(endTime);
+      playbackTimeRef.current = endTime;
+      pauseTimeRef.current = 0;
+      stopSource();
+      cancelLoop();
+    };
+
+    if (!gainNodeRef.current) {
+      gainNodeRef.current = processor.context.createGain();
+      gainNodeRef.current.connect(processor.context.destination);
+    }
+
+    const volume = getSnapshot(audioStore).volume;
+    gainNodeRef.current.gain.value = volume;
+
+    source.connect(processor.analyserNode);
+
+    if (gainNodeRef.current && !analyserConnectedRef.current) {
+      processor.analyserNode.connect(gainNodeRef.current);
+      analyserConnectedRef.current = true;
+    }
+
+    startTimeRef.current = processor.context.currentTime;
     source.start(0, pauseTimeRef.current);
 
     sourceRef.current = source;
-    setAudioState((prev) => ({ ...prev, isPlaying: true }));
-
-    updateCurrentTime();
-  }, [audioData, audioState.volume, updateCurrentTime]);
+    audioActions.setPlaying(true);
+    animationFrameRef.current = requestAnimationFrame(updateLoop);
+  }, [cancelLoop, initializeAudioProcessor, playbackTimeRef, stopSource, updateLoop]);
 
   const pause = useCallback(() => {
-    if (sourceRef.current) {
-      sourceRef.current.stop();
-      sourceRef.current.disconnect();
-      sourceRef.current = null;
-    }
+    const state = getSnapshot(audioStore);
+    if (!state.isPlaying) return;
 
-    if (animationFrameRef.current) {
-      cancelAnimationFrame(animationFrameRef.current);
-    }
-
-    pauseTimeRef.current = audioState.currentTime;
-    setAudioState((prev) => ({ ...prev, isPlaying: false }));
-  }, [audioState.currentTime]);
+    pauseTimeRef.current = state.currentTime;
+    stopSource();
+    cancelLoop();
+    audioActions.setPlaying(false);
+  }, [cancelLoop, stopSource]);
 
   const seek = useCallback(
     (time: number) => {
-      const wasPlaying = audioState.isPlaying;
+      const state = getSnapshot(audioStore);
+      const clamped = Math.max(0, Math.min(time, state.duration || 0));
 
-      if (wasPlaying) {
-        pause();
-      }
+      pauseTimeRef.current = clamped;
+      audioActions.setCurrentTime(clamped);
+      playbackTimeRef.current = clamped;
 
-      pauseTimeRef.current = Math.max(0, Math.min(time, audioState.duration));
-      setAudioState((prev) => ({ ...prev, currentTime: pauseTimeRef.current }));
-
-      if (wasPlaying) {
-        setTimeout(play, 0);
+      if (state.isPlaying) {
+        stopSource();
+        play();
       }
     },
-    [audioState.isPlaying, audioState.duration, pause, play],
+    [play, playbackTimeRef, stopSource],
   );
 
   const setVolume = useCallback((volume: number) => {
-    const clampedVolume = Math.max(0, Math.min(1, volume));
-    setAudioState((prev) => ({ ...prev, volume: clampedVolume }));
+    const clamped = Math.max(0, Math.min(1, volume));
+    audioActions.setVolume(clamped);
 
     if (gainNodeRef.current) {
-      gainNodeRef.current.gain.value = clampedVolume;
+      gainNodeRef.current.gain.value = clamped;
     }
   }, []);
 
   const getFrequencyData = useCallback(() => {
-    return audioProcessorRef.current?.getFrequencyData() || new Uint8Array(256);
+    if (!audioProcessorRef.current) {
+      return frequencyArrayRef.current;
+    }
+
+    const data = audioProcessorRef.current.getFrequencyData();
+    if (data.length !== frequencyArrayRef.current.length) {
+      frequencyArrayRef.current = new Uint8Array(data.length);
+    }
+
+    frequencyArrayRef.current.set(data);
+    return frequencyArrayRef.current;
   }, []);
 
   useEffect(() => {
     return () => {
-      if (sourceRef.current) {
-        sourceRef.current.stop();
-        sourceRef.current.disconnect();
-      }
-      if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
-      }
+      stopSource();
+      cancelLoop();
     };
-  }, []);
+  }, [cancelLoop, stopSource]);
 
   return {
-    audioData,
-    audioState,
+    audio: snapshot,
     loadAudio,
     play,
     pause,

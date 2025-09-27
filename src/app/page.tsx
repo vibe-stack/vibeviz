@@ -1,5 +1,10 @@
-import { MusicVisualizer } from "../components/MusicVisualizer";
+import { PlaybackTimeProvider } from "@/context/playback-time-context";
+import { MusicVisualizer } from "@/components/MusicVisualizer";
 
 export default function Home() {
-  return <MusicVisualizer />;
+  return (
+    <PlaybackTimeProvider>
+      <MusicVisualizer />
+    </PlaybackTimeProvider>
+  );
 }
