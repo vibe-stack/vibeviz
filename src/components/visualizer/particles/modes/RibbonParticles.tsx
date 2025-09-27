@@ -100,6 +100,9 @@ export const RibbonParticles = ({
       const progress = segmentIndex / segmentsPerBand;
       const bandProgress = bandIndex / bandCount;
 
+      const bandPhase = bandIndex * 0.9;
+      const tempoSpin = time * (0.18 + audio.bands.low * 0.45) + bandPhase;
+
       const wave =
         Math.sin(time * params.waveFrequency + progress * Math.PI * 4 + phase) *
         params.waveAmplitude *
@@ -109,40 +112,43 @@ export const RibbonParticles = ({
 
       const radius =
         global.spawnRadius *
-        (0.5 + bandProgress * 0.8 + wave * 0.12 + audio.bands.low * 0.25);
+        (0.55 + bandProgress * 0.9 + wave * 0.14 + audio.bands.low * 0.35);
+
+      const radialPulse = 1 + audio.beat * 0.22 + Math.sin(time * 0.6 + progress * Math.PI * 6 + bandPhase) * params.noiseStrength * 0.12;
 
       const angle =
         progress * Math.PI * 2 +
-        bandProgress * Math.PI * 0.6 +
-        time * global.speed * 0.25 +
-        wave * 0.08;
+        bandProgress * Math.PI * 0.7 +
+        tempoSpin * (0.6 + global.speed * 0.3) +
+        wave * 0.1;
 
       const ribbonHeight =
-        wave * global.spawnRadius * 0.3 +
-        Math.cos(time * 0.4 + bandProgress * 2.2) *
+        wave * global.spawnRadius * 0.32 +
+        Math.cos(time * 0.35 + bandProgress * 2.4) *
           params.noiseStrength *
-          0.6;
+          0.75 +
+        Math.sin(progress * Math.PI * 4 + tempoSpin) * global.spawnRadius * 0.08;
 
-      const x = Math.cos(angle) * radius + Math.sin(progress * Math.PI * 6) * noise;
+      const x = Math.cos(angle) * radius * radialPulse + Math.sin(progress * Math.PI * 6) * noise;
       const y = ribbonHeight;
-      const z = Math.sin(angle) * radius + Math.cos(progress * Math.PI * 6) * noise;
+      const z = Math.sin(angle) * radius * radialPulse + Math.cos(progress * Math.PI * 6) * noise;
 
       const targetEnergy =
-        audio.bands.high * 0.8 + audio.bands.mid * 0.6 + audio.beat * 0.9;
+        audio.bands.high * 0.9 + audio.bands.mid * 0.55 + audio.beat * 1;
       const decay = 1 - Math.min(0.9, global.trail * 0.55);
       energies[i] = energies[i] * decay + targetEnergy * (1 - decay);
 
       const scale =
         global.size *
-        (0.6 + energies[i] * 2.6 + (1 - Math.abs(0.5 - progress)) * 0.8);
+        (0.6 + energies[i] * 2.9 + (1 - Math.abs(0.5 - progress)) * 1.1 + audio.bands.high * 0.8);
 
       dummyPosition.set(x, y, z);
-      dummyScale.set(scale, scale * 0.7, scale);
+      dummyScale.set(scale, scale * 0.55, scale * 1.15);
       dummyQuaternion.set(0, 0, 0, 1);
       dummyMatrix.compose(dummyPosition, dummyQuaternion, dummyScale);
       mesh.setMatrixAt(i, dummyMatrix);
 
-      const paletteMix = Math.min(1, progress * 0.8 + energies[i]);
+      const paletteMix = Math.min(1, progress * 0.5 + energies[i] * 1.2 + audio.beat * 0.3);
       mesh.setColorAt(i, samplePalette(palette, paletteMix, workingColor));
     }
 

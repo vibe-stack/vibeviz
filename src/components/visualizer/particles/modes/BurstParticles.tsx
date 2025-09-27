@@ -134,6 +134,17 @@ export const BurstParticles = ({
         if (audio.beat > 0.4 && Math.random() < audio.beat * 0.6) {
           respawnParticle(i, audio.beat);
         }
+        const positionIndex = i * 3;
+        dummyPosition.set(
+          positions[positionIndex],
+          positions[positionIndex + 1],
+          positions[positionIndex + 2],
+        );
+        dummyScale.set(0, 0, 0);
+        dummyQuaternion.set(0, 0, 0, 1);
+        dummyMatrix.compose(dummyPosition, dummyQuaternion, dummyScale);
+        mesh.setMatrixAt(i, dummyMatrix);
+        mesh.setColorAt(i, samplePalette(palette, 0, workingColor));
         continue;
       }
 

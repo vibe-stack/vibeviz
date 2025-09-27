@@ -89,14 +89,14 @@ export const OrbitParticles = ({
         (0.3 + audio.bands.mid * 1.1);
 
       const orbitSpeed =
-        global.speed *
-        (0.6 + params.tempoFollow * audio.bands.low + ringProgress * 0.3) *
-        (1 + params.twist * 0.2);
+        (0.08 + audio.bands.mid * 0.12 + ringProgress * 0.05) *
+        (1 + params.tempoFollow * audio.bands.low * 0.4) *
+        (0.6 + global.speed * 0.45);
       const angle =
         phase +
         time * orbitSpeed +
-        wobble * 0.4 +
-        audio.beat * (0.4 + offset * 0.6);
+        wobble * 0.35 +
+        audio.beat * (0.22 + offset * 0.35);
 
       const radius = radiusBase * (1 + wobble * 0.35);
       const verticalSwing =

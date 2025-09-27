@@ -90,11 +90,11 @@ export const VortexParticles = ({
     const audio = getAudioAnalysis();
     const t = playbackTimeRef.current;
 
-    const swirl = params.swirlStrength * (0.55 + audio.bands.mid * 1.35);
-    const axial = params.axialPull * (0.4 + audio.bands.low * 1.2);
-    const beatPulse = 1 + audio.beat * params.beatPulse;
-    const noiseStrength = params.noiseStrength * (0.6 + audio.bands.high * 1.1);
-    const drift = params.verticalDrift * (0.5 + audio.bands.mid * 0.8);
+    const swirl = params.swirlStrength * (0.45 + audio.bands.mid * 1);
+    const axial = params.axialPull * (0.35 + audio.bands.low * 0.9);
+    const beatPulse = 1 + audio.beat * (params.beatPulse * 0.75);
+    const noiseStrength = params.noiseStrength * (0.4 + audio.bands.high * 0.8);
+    const drift = params.verticalDrift * (0.35 + audio.bands.mid * 0.65);
 
     const { directions, radii, seeds, heights, energies } = data;
 
@@ -107,9 +107,9 @@ export const VortexParticles = ({
       const baseRadius = radii[i];
       const baseHeight = heights[i];
 
-      const swirlAngle = t * (0.32 + audio.average * 1.8) + seed * 1.4;
+      const swirlAngle = t * (0.12 + audio.average * 0.6) + seed * 1.15;
       const radialNoise = Math.sin(swirlAngle) * noiseStrength;
-      const jitter = Math.cos(seed * 1.9 + t * 0.74) * global.spawnJitter * 0.35;
+      const jitter = Math.cos(seed * 1.4 + t * 0.45) * global.spawnJitter * 0.25;
 
       const radius = baseRadius * beatPulse + radialNoise * global.spawnRadius;
       const height =
@@ -117,9 +117,9 @@ export const VortexParticles = ({
         dirY * axial * global.spawnRadius * 0.45 +
         Math.sin(t * 0.6 + seed) * drift * global.spawnRadius * 0.3;
 
-      const x = dirX * radius + Math.sin(t * 0.7 + seed) * jitter;
-      const y = dirY * radius * 0.4 + height;
-      const z = dirZ * radius + Math.cos(t * 0.65 + seed * 1.2) * jitter;
+      const x = dirX * radius + Math.sin(t * 0.4 + seed) * jitter;
+      const y = dirY * radius * 0.35 + height;
+      const z = dirZ * radius + Math.cos(t * 0.38 + seed * 1.1) * jitter;
 
       const energyTarget =
         audio.bands.high * 0.75 + audio.bands.mid * 0.35 + audio.beat * 0.9;
