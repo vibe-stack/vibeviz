@@ -29,10 +29,13 @@ export interface VisualizerSceneRef {
 export const VisualizerScene = forwardRef<VisualizerSceneRef, VisualizerSceneProps>(({ getFrequencyData }, ref) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const visualizer = useSnapshot(visualizerStore);
+  const { background, fog, lights } = visualizer.world;
 
   useImperativeHandle(ref, () => ({
     getCanvas: () => canvasRef.current,
   }));
+
+  const toArray = (vector: { x: number; y: number; z: number }): [number, number, number] => [vector.x, vector.y, vector.z];
 
   return (
     <div className="h-full w-full">
@@ -46,32 +49,33 @@ export const VisualizerScene = forwardRef<VisualizerSceneRef, VisualizerScenePro
         }}
         className="bg-zinc-950"
       >
-        <color attach="background" args={[visualizer.world.background]} />
-        {visualizer.world.fog.enabled ? (
-          <fog
-            attach="fog"
-            args={[
-              visualizer.world.fog.color,
-              visualizer.world.fog.near,
-              visualizer.world.fog.far,
-            ]}
+        <color attach="background" args={[background]} />
+        {fog.enabled ? (
+          <fog attach="fog" args={[fog.color, fog.near, fog.far]} />
+        ) : null}
+
+        {lights.ambient.enabled ? (
+          <ambientLight
+            intensity={lights.ambient.intensity}
+            color={lights.ambient.color}
           />
         ) : null}
 
-        <ambientLight
-          intensity={visualizer.world.ambientIntensity}
-          color="#94a3b8"
-        />
-        <directionalLight
-          position={[6, 10, 6]}
-          intensity={visualizer.world.keyLightIntensity}
-          color="#38bdf8"
-        />
-        <directionalLight
-          position={[-6, 4, -4]}
-          intensity={visualizer.world.fillLightIntensity}
-          color="#f87171"
-        />
+        {(["key", "fill", "rim"] as const).map((key) => {
+          const light = lights[key];
+          if (!light.enabled) return null;
+          return (
+            <directionalLight
+              key={key}
+              position={toArray(light.position)}
+              intensity={light.intensity}
+              color={light.color}
+              castShadow={light.castShadow}
+              shadow-bias={light.shadowBias}
+              shadow-radius={light.shadowRadius}
+            />
+          );
+        })}
 
         <ShapesVisualizer
           getFrequencyData={getFrequencyData}

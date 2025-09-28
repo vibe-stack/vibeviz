@@ -87,6 +87,15 @@ export interface BarsSettings {
   maxBarHeight: number;
   barCount: number;
   scaleMode: BarScaleMode;
+  rotationSpeed: number;
+  baseHeight: number;
+  smoothing: number;
+  barWidth: number;
+  radialThickness: number;
+  highlightStrength: number;
+  emissiveIntensity: number;
+  audioThreshold: number;
+  audioGain: number;
   material: MaterialSettings;
 }
 
@@ -194,11 +203,40 @@ export interface FogSettings {
   far: number;
 }
 
+export interface AmbientLightSettings {
+  enabled: boolean;
+  intensity: number;
+  color: string;
+}
+
+export interface DirectionalLightSettings {
+  enabled: boolean;
+  intensity: number;
+  color: string;
+  position: Vector3Config;
+  castShadow: boolean;
+  shadowBias: number;
+  shadowRadius: number;
+}
+
+export interface WorldLightsSettings {
+  ambient: AmbientLightSettings;
+  key: DirectionalLightSettings;
+  fill: DirectionalLightSettings;
+  rim: DirectionalLightSettings;
+}
+
+export interface BloomSettings {
+  enabled: boolean;
+  threshold: number;
+  strength: number;
+  radius: number;
+}
+
 export interface WorldSettings {
   background: string;
-  ambientIntensity: number;
-  keyLightIntensity: number;
-  fillLightIntensity: number;
+  lights: WorldLightsSettings;
+  bloom: BloomSettings;
   fog: FogSettings;
 }
 
@@ -243,6 +281,15 @@ export const visualizerStore = proxy<VisualizerStore>({
     maxBarHeight: 3,
     barCount: 64,
     scaleMode: "vertical",
+    rotationSpeed: 0.05,
+    baseHeight: 0.12,
+    smoothing: 0.35,
+    barWidth: 1,
+    radialThickness: 0.35,
+    highlightStrength: 0.45,
+    emissiveIntensity: 0.6,
+    audioThreshold: 0.02,
+    audioGain: 1.5,
     material: defaultMaterial("#3b82f6"),
   },
   particles: {
@@ -355,9 +402,46 @@ export const visualizerStore = proxy<VisualizerStore>({
   },
   world: {
     background: "#09090b",
-    ambientIntensity: 0.35,
-    keyLightIntensity: 0.85,
-    fillLightIntensity: 0.45,
+    lights: {
+      ambient: {
+        enabled: true,
+        color: "#94a3b8",
+        intensity: 0.35,
+      },
+      key: {
+        enabled: true,
+        color: "#38bdf8",
+        intensity: 0.85,
+        position: { x: 6, y: 10, z: 6 },
+        castShadow: true,
+        shadowBias: -0.0002,
+        shadowRadius: 2,
+      },
+      fill: {
+        enabled: true,
+        color: "#f87171",
+        intensity: 0.45,
+        position: { x: -6, y: 4, z: -4 },
+        castShadow: false,
+        shadowBias: -0.0001,
+        shadowRadius: 1.5,
+      },
+      rim: {
+        enabled: false,
+        color: "#f97316",
+        intensity: 0.6,
+        position: { x: -8, y: 6, z: 8 },
+        castShadow: false,
+        shadowBias: -0.0001,
+        shadowRadius: 1,
+      },
+    },
+    bloom: {
+      enabled: true,
+      threshold: 0.3,
+      strength: 0.5,
+      radius: 1.2,
+    },
     fog: {
       enabled: true,
       color: "#0f172a",
@@ -431,6 +515,24 @@ export const visualizerActions = {
   },
   updateWorld(partial: Partial<WorldSettings>) {
     Object.assign(visualizerStore.world, partial);
+  },
+  updateAmbientLight(partial: Partial<AmbientLightSettings>) {
+    Object.assign(visualizerStore.world.lights.ambient, partial);
+  },
+  updateDirectionalLight(
+    light: "key" | "fill" | "rim",
+    partial: Partial<DirectionalLightSettings>,
+  ) {
+    Object.assign(visualizerStore.world.lights[light], partial);
+  },
+  updateDirectionalLightPosition(
+    light: "key" | "fill" | "rim",
+    partial: Partial<Vector3Config>,
+  ) {
+    Object.assign(visualizerStore.world.lights[light].position, partial);
+  },
+  updateBloom(partial: Partial<BloomSettings>) {
+    Object.assign(visualizerStore.world.bloom, partial);
   },
   updateFog(partial: Partial<FogSettings>) {
     Object.assign(visualizerStore.world.fog, partial);

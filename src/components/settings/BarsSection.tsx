@@ -32,6 +32,20 @@ export const BarsSection = () => {
         />
       </div>
       <DragInput
+        label="Rotation Speed"
+        value={visualizer.bars.rotationSpeed}
+        onChange={(value) =>
+          visualizerActions.updateBars({
+            rotationSpeed: clamp(value, 0, 0.4),
+          })
+        }
+        step={0.005}
+        precision={3}
+        min={0}
+        max={0.4}
+        suffix="rad/s"
+      />
+      <DragInput
         label="Radius"
         value={visualizer.bars.radius}
         onChange={(value) =>
@@ -44,21 +58,48 @@ export const BarsSection = () => {
         suffix="u"
       />
       <DragInput
+        label="Base Height"
+        value={visualizer.bars.baseHeight}
+        onChange={(value) =>
+          visualizerActions.updateBars({
+            baseHeight: clamp(value, 0, 1),
+          })
+        }
+        step={0.01}
+        precision={2}
+        min={0}
+        max={1}
+        suffix="u"
+      />
+      <DragInput
         label={
           visualizer.bars.scaleMode === "vertical"
-            ? "Bar Height"
-            : "Radial Length"
+            ? "Dynamic Height"
+            : "Dynamic Length"
         }
         value={visualizer.bars.maxBarHeight}
         onChange={(value) =>
           visualizerActions.updateBars({
-            maxBarHeight: clamp(value, 1, 6),
+            maxBarHeight: clamp(value, 1, 20),
           })
         }
         step={0.05}
         precision={2}
         min={1}
-        max={6}
+        max={20}
+      />
+      <DragInput
+        label="Arc Smoothing"
+        value={visualizer.bars.smoothing}
+        onChange={(value) =>
+          visualizerActions.updateBars({
+            smoothing: clamp(value, 0, 10),
+          })
+        }
+        step={0.01}
+        precision={2}
+        min={0}
+        max={10}
       />
       <DragInput
         label="Bar Count"
@@ -74,6 +115,66 @@ export const BarsSection = () => {
         max={160}
         suffix="bars"
       />
+      <div className="grid grid-cols-1 gap-3">
+        <DragInput
+          label="Audio Threshold"
+          value={visualizer.bars.audioThreshold}
+          onChange={(value) =>
+            visualizerActions.updateBars({
+              audioThreshold: clamp(value, 0, 1),
+            })
+          }
+          step={0.005}
+          precision={3}
+          min={0}
+          max={1}
+          suffix=""
+        />
+        <DragInput
+          label="Audio Gain"
+          value={visualizer.bars.audioGain}
+          onChange={(value) =>
+            visualizerActions.updateBars({
+              audioGain: clamp(value, 0.1, 5.0),
+            })
+          }
+          step={0.1}
+          precision={1}
+          min={0.1}
+          max={5.0}
+          suffix="x"
+        />
+      </div>
+      <div className="grid grid-cols-1 gap-3">
+        <DragInput
+          label="Vertical Width"
+          value={visualizer.bars.barWidth}
+          onChange={(value) =>
+            visualizerActions.updateBars({
+              barWidth: clamp(value, 0.2, 2),
+            })
+          }
+          step={0.05}
+          precision={2}
+          min={0.2}
+          max={2}
+          suffix="u"
+        />
+        <DragInput
+          label="Radial Thickness"
+          value={visualizer.bars.radialThickness}
+          onChange={(value) =>
+            visualizerActions.updateBars({
+              radialThickness: clamp(value, 0.1, 1),
+            })
+          }
+          step={0.01}
+          precision={2}
+          min={0.1}
+          max={1}
+          suffix="u"
+        />
+      </div>
       <div className="grid grid-cols-1 gap-3 text-xs">
         <ColorSwatch
           label="Color"
@@ -81,6 +182,32 @@ export const BarsSection = () => {
           onChange={(value) =>
             visualizerActions.updateBarMaterial({ color: value })
           }
+        />
+        <DragInput
+          label="Highlight Strength"
+          value={visualizer.bars.highlightStrength}
+          onChange={(value) =>
+            visualizerActions.updateBars({
+              highlightStrength: clamp(value, 0, 1),
+            })
+          }
+          step={0.01}
+          precision={2}
+          min={0}
+          max={1}
+        />
+        <DragInput
+          label="Emissive Boost"
+          value={visualizer.bars.emissiveIntensity}
+          onChange={(value) =>
+            visualizerActions.updateBars({
+              emissiveIntensity: clamp(value, 0, 1.5),
+            })
+          }
+          step={0.01}
+          precision={2}
+          min={0}
+          max={1.5}
         />
         <DragInput
           label="Metalness"

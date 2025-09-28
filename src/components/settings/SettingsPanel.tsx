@@ -52,14 +52,14 @@ export const SettingsPanel = () => {
 
         <Tabs.Panel
           value="shaders"
-          className="flex-1 space-y-4 overflow-y-auto px-5 pb-8 pt-4"
+          className="flex-1 space-y-4 overflow-y-auto px-5 pb-8 pt-4 max-h-[80dvh]"
         >
           <ShadersSection />
         </Tabs.Panel>
 
         <Tabs.Panel
           value="world"
-          className="flex-1 space-y-6 overflow-y-auto px-5 pb-8 pt-4"
+          className="flex-1 space-y-6 overflow-y-auto px-5 pb-8 pt-4 max-h-[80dvh]"
         >
           <WorldSection />
         </Tabs.Panel>

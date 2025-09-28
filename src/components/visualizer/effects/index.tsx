@@ -1,13 +1,14 @@
 "use client";
 
-import React, { useEffect, useMemo, useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
-import { Environment } from '@react-three/drei';
+import { useSnapshot } from 'valtio';
 // Postprocessing is not WebGPU compatible in this setup; disable for now
 import * as THREE from 'three/webgpu';
 // three WebGPU postprocessing via TSL
 import { pass } from 'three/tsl';
 import { bloom as bloomNode } from 'three/addons/tsl/display/BloomNode.js';
+import { visualizerStore } from '@/state/visualizer-store';
 
 const toThreeColor = (rgb: { x: number; y: number; z: number }) => new THREE.Color(rgb.x, rgb.y, rgb.z);
 
@@ -30,6 +31,8 @@ const shadowMapType: Record<string, THREE.ShadowMapType> = {
 
 export const WorldEffects: React.FC = () => {
   const { gl, scene, camera } = useThree();
+  const { world } = useSnapshot(visualizerStore);
+  const { bloom } = world;
 
   // Post-processing refs
   const postRef = useRef<THREE.PostProcessing | null>(null);
@@ -55,16 +58,21 @@ export const WorldEffects: React.FC = () => {
 
   // Setup/teardown WebGPU bloom post-processing. Only enable in material shading mode.
   useEffect(() => {
-    // Tear down any previous chain first
-    if (postRef.current && typeof (postRef.current as any).dispose === 'function') {
-      try { (postRef.current as any).dispose(); } catch {}
+    const dispose = () => {
+      if (postRef.current && typeof (postRef.current as any).dispose === 'function') {
+        try { (postRef.current as any).dispose(); } catch {}
+      }
+      postRef.current = null;
+      bloomRef.current = null;
+      scenePassColorRef.current = null;
+    };
+
+    // enable only when bloom is on and we are in material shading mode
+    // Only available with WebGPU renderer
+    if (!(gl as any)?.isWebGPURenderer || !bloom.enabled) {
+      dispose();
+      return;
     }
-    postRef.current = null;
-    bloomRef.current = null;
-    scenePassColorRef.current = null;
-  // enable only when bloom is on and we are in material shading mode
-  // Only available with WebGPU renderer
-  if (!(gl as any)?.isWebGPURenderer) return;
 
     try {
       const post = new (THREE as any).PostProcessing(gl as any);
@@ -73,10 +81,10 @@ export const WorldEffects: React.FC = () => {
       const scenePassColor = (scenePass as any).getTextureNode('output');
       const bloomPass = bloomNode(scenePassColor);
 
-      // Initial params
-      if (bloomPass.threshold) bloomPass.threshold.value = 0.3;
-      if (bloomPass.strength) bloomPass.strength.value = .5;
-      if (bloomPass.radius) bloomPass.radius.value = Math.max(0, Math.min(2, 2));
+      // Initial params from settings
+      if (bloomPass.threshold) bloomPass.threshold.value = bloom.threshold;
+      if (bloomPass.strength) bloomPass.strength.value = bloom.strength;
+      if (bloomPass.radius) bloomPass.radius.value = Math.max(0, Math.min(3, bloom.radius));
 
       // Compose and assign
       post.outputNode = (scenePassColor as any).add(bloomPass);
@@ -85,25 +93,21 @@ export const WorldEffects: React.FC = () => {
       bloomRef.current = bloomPass;
       scenePassColorRef.current = scenePassColor;
     } catch (e) {
-      // If anything goes wrong, disable gracefully
-      if (postRef.current && typeof (postRef.current as any).dispose === 'function') {
-        try { (postRef.current as any).dispose(); } catch {}
-      }
-      postRef.current = null;
-      bloomRef.current = null;
-      scenePassColorRef.current = null;
       console.warn('Bloom postprocessing init failed:', e);
+      dispose();
     }
-    return () => {
-      if (postRef.current && typeof (postRef.current as any).dispose === 'function') {
-        try { (postRef.current as any).dispose(); } catch {}
-      }
-      postRef.current = null;
-      bloomRef.current = null;
-      scenePassColorRef.current = null;
-    };
+
+    return dispose;
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [gl, scene, camera]);
+  }, [gl, scene, camera, bloom.enabled]);
+
+  useEffect(() => {
+    if (!bloom.enabled || !bloomRef.current) return;
+
+    if (bloomRef.current.threshold) bloomRef.current.threshold.value = bloom.threshold;
+    if (bloomRef.current.strength) bloomRef.current.strength.value = bloom.strength;
+    if (bloomRef.current.radius) bloomRef.current.radius.value = Math.max(0, Math.min(3, bloom.radius));
+  }, [bloom.enabled, bloom.threshold, bloom.strength, bloom.radius]);
 
   // Drive post-processing each frame (after the default r3f render)
   useFrame(() => {
