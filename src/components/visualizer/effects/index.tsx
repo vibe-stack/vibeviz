@@ -75,7 +75,7 @@ export const WorldEffects: React.FC = () => {
 
       // Initial params
       if (bloomPass.threshold) bloomPass.threshold.value = 0.3;
-      if (bloomPass.strength) bloomPass.strength.value = 4.5;
+      if (bloomPass.strength) bloomPass.strength.value = .5;
       if (bloomPass.radius) bloomPass.radius.value = Math.max(0, Math.min(2, 2));
 
       // Compose and assign

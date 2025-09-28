@@ -98,7 +98,7 @@ export const FragmentsShader = ({
       
       // Accumulate with falloff
       const falloff = float(1).div(iFloat.add(1));
-      accumulator = accumulator.add(colorShift.mul(falloff));
+      accumulator = accumulator.add(colorShift.mul(falloff)) as any;
     }
     
     // Apply tone mapping (approximation of tanh using clamp and scaling)

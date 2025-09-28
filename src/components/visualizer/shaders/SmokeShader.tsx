@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import { MeshBasicNodeMaterial, AdditiveBlending, Color } from "three/webgpu";
 import {
@@ -37,6 +37,21 @@ export const SmokeShader = ({ getFrequencyData, settings }: SmokeShaderProps) =>
   const colorUniform = useMemo(() => uniform(new Color(settings.color)), []);
   const scaleUniform = useMemo(() => uniform(settings.scale), []);
 
+  const smoothedPeakRef = useRef(0);
+  const smoothedAverageRef = useRef(0);
+
+  useEffect(() => {
+    intensityUniform.value = settings.intensity;
+  }, [intensityUniform, settings.intensity]);
+
+  useEffect(() => {
+    speedUniform.value = settings.speed;
+  }, [settings.speed, speedUniform]);
+
+  useEffect(() => {
+    contrastUniform.value = settings.contrast;
+  }, [contrastUniform, settings.contrast]);
+
   useEffect(() => {
     colorUniform.value.set(settings.color);
   }, [colorUniform, settings.color]);
@@ -53,25 +68,61 @@ export const SmokeShader = ({ getFrequencyData, settings }: SmokeShaderProps) =>
 
     const uvNode = uv();
     const centered = uvNode.mul(2).sub(vec2(1));
-    const radial = length(centered);
-    const fade = clamp(float(1).sub(radial.mul(1.08)), 0.0, 1.0);
+    const stretched = centered.mul(vec2(1, 0.82));
+    const radial = length(stretched);
+    const radialFade = clamp(float(1).sub(pow(radial.mul(1.12), float(1.05))), 0.0, 1.0);
+    const verticalFade = clamp(float(1).sub(abs(stretched.y).mul(1.25)), 0.0, 1.0);
+    const edgeFade = radialFade.mul(verticalFade);
 
-    const baseTime = time.mul(speedUniform.mul(0.08));
-    const swirlTime = baseTime.add(energyUniform.mul(0.25));
+    const timePrimary = time.mul(speedUniform.mul(0.022)).add(energyUniform.mul(0.12));
+    const timeSecondary = time.mul(speedUniform.mul(0.011));
 
-    const flowSpace = centered.mul(scaleUniform.mul(3.2));
-    const flowA = sin(flowSpace.x.add(swirlTime.mul(1.45)));
-    const flowB = sin(flowSpace.y.sub(swirlTime.mul(1.1)));
-    const flowC = sin(flowSpace.x.add(flowSpace.y).mul(0.85).add(swirlTime.mul(0.9)));
+    const swirlBase = radial.mul(2.4).add(timePrimary.mul(0.42));
+    const swirlSin = sin(swirlBase);
+    const swirlCos = sin(swirlBase.add(float(1.57079632679)));
+    const rotated = vec2(
+      stretched.x.mul(swirlCos).sub(stretched.y.mul(swirlSin)),
+      stretched.x.mul(swirlSin).add(stretched.y.mul(swirlCos))
+    );
 
-    const turbulence = abs(flowA.mul(0.6).add(flowB.mul(0.4))).add(abs(flowC).mul(0.9));
-    const layered = pow(turbulence, intensityUniform.mul(1.7));
-    const smoke = clamp(layered.mul(fade), 0.0, 1.0);
+    const drift = vec2(
+      sin(timeSecondary.mul(0.7)).mul(0.22),
+      sin(timeSecondary.mul(0.49).add(float(2.1))).mul(0.18)
+    );
 
-    const baseColor = vec3(0.05, 0.06, 0.1);
-    const colorBlend = mix(baseColor, colorUniform, smoke.mul(contrastUniform));
+    const flowSpace = rotated.add(drift).mul(scaleUniform.mul(2.2));
+    const warpX = sin(flowSpace.y.mul(1.7).add(timePrimary.mul(0.6))).mul(0.45);
+    const warpY = sin(flowSpace.x.mul(1.35).sub(timePrimary.mul(0.48))).mul(0.38);
+    const domainWarp = vec2(warpX, warpY);
+    const warped = flowSpace.add(domainWarp.mul(0.6));
+
+    const layer1 = sin(warped.x.add(timePrimary.mul(0.52))).mul(0.55);
+    const layer2 = sin(warped.y.sub(timePrimary.mul(0.37))).mul(0.5);
+    const layer3 = sin(warped.x.add(warped.y).mul(0.85).add(timeSecondary.mul(1.1))).mul(0.4);
+    const layer4 = sin(length(warped).mul(1.7).sub(timePrimary.mul(0.29))).mul(0.35);
+    const detail = sin(warped.x.mul(2.6).add(warped.y.mul(1.4)).add(timeSecondary.mul(0.9))).mul(0.22);
+
+    const turbulence = abs(layer1)
+      .add(abs(layer2).mul(0.85))
+      .add(abs(layer3).mul(0.75))
+      .add(abs(layer4).mul(0.65))
+      .add(abs(detail).mul(0.55));
+
+    const wisps = pow(turbulence.mul(0.78).add(0.18), intensityUniform.mul(1.1).add(float(0.15)));
+    const smokeBody = clamp(wisps.mul(edgeFade), 0.0, 1.0);
+    const filament = clamp(pow(wisps, float(1.8)).mul(0.85), 0.0, 1.0);
+
+    const bodyStrength = clamp(smokeBody.mul(contrastUniform.mul(0.6).add(0.4)), 0.0, 1.0);
+    const highlightMask = clamp(filament.mul(contrastUniform.mul(0.35).add(0.2)).add(energyUniform.mul(0.18)), 0.0, 1.0);
+
+    const baseColor = vec3(0.07, 0.08, 0.1);
+    const midTone = vec3(0.16, 0.17, 0.19);
+    const highlightBase = mix(midTone.add(vec3(0.05, 0.05, 0.05)), colorUniform, clamp(highlightMask.mul(0.7), 0.0, 1.0));
+    const tinted = mix(baseColor, midTone, clamp(bodyStrength.mul(1.1), 0.0, 1.0));
+    const colorBlend = mix(tinted, highlightBase, highlightMask);
+
     mat.colorNode = colorBlend;
-    mat.opacityNode = clamp(smoke.mul(0.88).add(energyUniform.mul(0.32)), 0.0, 1.0);
+    mat.opacityNode = clamp(smokeBody.mul(0.52).add(filament.mul(0.3)).add(energyUniform.mul(0.14)), 0.0, 1.0);
 
     return mat;
   }, [colorUniform, contrastUniform, energyUniform, intensityUniform, scaleUniform, speedUniform]);
@@ -92,10 +143,24 @@ export const SmokeShader = ({ getFrequencyData, settings }: SmokeShaderProps) =>
 
     const average = sum / data.length;
 
-    speedUniform.value = Math.max(0.01, settings.speed * (0.4 + peak * 0.9));
-    intensityUniform.value = settings.intensity + average * 0.5;
-    contrastUniform.value = settings.contrast + peak * 0.4;
-    energyUniform.value = peak;
+    const smoothing = 0.12;
+    smoothedPeakRef.current += (peak - smoothedPeakRef.current) * smoothing;
+    smoothedAverageRef.current += (average - smoothedAverageRef.current) * smoothing;
+
+    const peakEnergy = smoothedPeakRef.current;
+    const averageEnergy = smoothedAverageRef.current;
+
+    const targetSpeed = Math.max(0.015, settings.speed * (0.22 + averageEnergy * 0.25 + peakEnergy * 0.25));
+    speedUniform.value = speedUniform.value * 0.9 + targetSpeed * 0.1;
+
+    const targetIntensity = settings.intensity + averageEnergy * 0.25 + peakEnergy * 0.15;
+    intensityUniform.value = intensityUniform.value * 0.88 + targetIntensity * 0.12;
+
+    const targetContrast = settings.contrast + peakEnergy * 0.16 + averageEnergy * 0.08;
+    contrastUniform.value = contrastUniform.value * 0.88 + targetContrast * 0.12;
+
+    const targetEnergy = peakEnergy * 0.6 + averageEnergy * 0.4;
+    energyUniform.value = energyUniform.value * 0.8 + targetEnergy * 0.2;
   });
 
   return (

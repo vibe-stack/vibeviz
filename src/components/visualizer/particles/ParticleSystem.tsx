@@ -38,7 +38,7 @@ const MODE_COMPONENTS = {
   orbits: OrbitParticles,
   ribbons: RibbonParticles,
   nebula: NebulaParticles,
-} satisfies Record<
+} as unknown as Record<
   ParticleMode,
   ComponentType<ParticleModeComponentProps<ParticlePresetSettings[ParticleMode]>>
 >;
