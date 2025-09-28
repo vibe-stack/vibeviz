@@ -96,6 +96,8 @@ export interface BarsSettings {
   emissiveIntensity: number;
   audioThreshold: number;
   audioGain: number;
+  frequencyRangeStart: number; // 0-1, start of frequency spectrum to use
+  frequencyRangeEnd: number; // 0-1, end of frequency spectrum to use
   material: MaterialSettings;
 }
 
@@ -290,6 +292,8 @@ const createDefaultStore = (): VisualizerStore => ({
     emissiveIntensity: 0.6,
     audioThreshold: 0.02,
     audioGain: 1.5,
+    frequencyRangeStart: 0.0, // Start from beginning of spectrum
+    frequencyRangeEnd: 1.0, // Use full spectrum by default
     material: defaultMaterial("#3b82f6"),
   },
   particles: {

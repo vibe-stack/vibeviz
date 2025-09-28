@@ -102,6 +102,8 @@ export const CircularVisualizer = ({
       radius,
       audioThreshold,
       audioGain,
+      frequencyRangeStart,
+      frequencyRangeEnd,
     } = settings;
 
     const neighborSteps = Math.min(
@@ -111,40 +113,53 @@ export const CircularVisualizer = ({
 
     if (frequencyLength === 0) {
       rawAmplitudes.fill(0);
-    } else if (neighborSteps === 0) {
-      for (let i = 0; i < barCount; i += 1) {
-        const dataIndex = Math.floor((i * frequencyLength) / barCount);
-        const normalized = (frequencyData[dataIndex] ?? 0) / 255;
-        // Apply audio threshold and gain
-        const processed = Math.max(0, (normalized - audioThreshold) * audioGain);
-        rawAmplitudes[i] = Math.min(1, processed);
-      }
     } else {
-      const binsPerBar = frequencyLength / barCount;
-      for (let i = 0; i < barCount; i += 1) {
-        const start = Math.floor(i * binsPerBar);
-        let end = Math.floor((i + 1) * binsPerBar);
-        if (start === end) {
-          end = Math.min(start + 1, frequencyLength);
-        }
+      // Calculate the actual frequency range to use
+      const rangeStart = Math.floor(frequencyLength * frequencyRangeStart);
+      const rangeEnd = Math.floor(frequencyLength * frequencyRangeEnd);
+      const usableFrequencyLength = Math.max(1, rangeEnd - rangeStart);
 
-        let sum = 0;
-        let count = 0;
-        for (let idx = start; idx < end; idx += 1) {
-          sum += frequencyData[idx] ?? 0;
-          count += 1;
+      if (neighborSteps === 0) {
+        for (let i = 0; i < barCount; i += 1) {
+          const relativeIndex = (i / barCount) * usableFrequencyLength;
+          const dataIndex = rangeStart + Math.floor(relativeIndex);
+          const clampedIndex = Math.min(dataIndex, frequencyLength - 1);
+          const normalized = (frequencyData[clampedIndex] ?? 0) / 255;
+          // Apply audio threshold and gain
+          const processed = Math.max(0, (normalized - audioThreshold) * audioGain);
+          rawAmplitudes[i] = Math.min(1, processed);
         }
+      } else {
+        const binsPerBar = usableFrequencyLength / barCount;
+        for (let i = 0; i < barCount; i += 1) {
+          const relativeStart = i * binsPerBar;
+          const relativeEnd = (i + 1) * binsPerBar;
+          
+          const start = rangeStart + Math.floor(relativeStart);
+          let end = rangeStart + Math.floor(relativeEnd);
+          if (start === end) {
+            end = Math.min(start + 1, rangeEnd);
+          }
+          end = Math.min(end, frequencyLength);
 
-        if (count === 0) {
-          const fallbackIndex = Math.min(frequencyLength - 1, start);
-          sum += frequencyData[fallbackIndex] ?? 0;
-          count = 1;
+          let sum = 0;
+          let count = 0;
+          for (let idx = start; idx < end; idx += 1) {
+            sum += frequencyData[idx] ?? 0;
+            count += 1;
+          }
+
+          if (count === 0) {
+            const fallbackIndex = Math.min(frequencyLength - 1, start);
+            sum += frequencyData[fallbackIndex] ?? 0;
+            count = 1;
+          }
+
+          const normalized = sum / count / 255;
+          // Apply audio threshold and gain
+          const processed = Math.max(0, (normalized - audioThreshold) * audioGain);
+          rawAmplitudes[i] = Math.min(1, processed);
         }
-
-        const normalized = sum / count / 255;
-        // Apply audio threshold and gain
-        const processed = Math.max(0, (normalized - audioThreshold) * audioGain);
-        rawAmplitudes[i] = Math.min(1, processed);
       }
     }
 

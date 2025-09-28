@@ -145,6 +145,36 @@ export const BarsSection = () => {
           suffix="x"
         />
       </div>
+      <div className="grid grid-cols-2 gap-3">
+        <DragInput
+          label="Freq Range Start"
+          value={visualizer.bars.frequencyRangeStart}
+          onChange={(value) =>
+            visualizerActions.updateBars({
+              frequencyRangeStart: clamp(value, 0, 0.95),
+            })
+          }
+          step={0.01}
+          precision={2}
+          min={0}
+          max={0.95}
+          suffix=""
+        />
+        <DragInput
+          label="Freq Range End"
+          value={visualizer.bars.frequencyRangeEnd}
+          onChange={(value) =>
+            visualizerActions.updateBars({
+              frequencyRangeEnd: clamp(value, 0.05, 1.0),
+            })
+          }
+          step={0.01}
+          precision={2}
+          min={0.05}
+          max={1.0}
+          suffix=""
+        />
+      </div>
       <div className="grid grid-cols-1 gap-3">
         <DragInput
           label="Vertical Width"
