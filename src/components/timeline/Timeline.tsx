@@ -80,7 +80,7 @@ export const Timeline = ({
     ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
 
     const barWidth = rect.width / waveform.length;
-    const maxBarHeight = rect.height * 0.8;
+    const maxBarHeight = rect.height * 4;
 
     // Draw waveform bars
     ctx.fillStyle = "#3f3f46";

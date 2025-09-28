@@ -1,5 +1,6 @@
 "use client";
 
+import { forwardRef, useImperativeHandle, useRef } from "react";
 import { OrbitControls, Environment } from "@react-three/drei";
 import { Canvas, type ThreeToJSXElements, extend } from "@react-three/fiber";
 import * as THREE from "three/webgpu";
@@ -9,31 +10,39 @@ import { AnimatedShaderRenderer } from "./AnimatedShaderRenderer";
 import { CircularVisualizer } from "./CircularVisualizer";
 import { ParticleSystem } from "./particles/ParticleSystem";
 import { ShapesVisualizer } from "./shapes/ShapesVisualizer";
+import WorldEffects from "./effects";
 
 declare module "@react-three/fiber" {
-  interface ThreeElements extends ThreeToJSXElements<typeof THREE> {}
+  interface ThreeElements extends ThreeToJSXElements<typeof THREE> { }
 }
 
-extend(THREE as unknown as Record<string, unknown>);
+extend(THREE as any);
 
 interface VisualizerSceneProps {
   getFrequencyData: () => Uint8Array;
 }
 
-export const VisualizerScene = ({ getFrequencyData }: VisualizerSceneProps) => {
+export interface VisualizerSceneRef {
+  getCanvas: () => HTMLCanvasElement | null;
+}
+
+export const VisualizerScene = forwardRef<VisualizerSceneRef, VisualizerSceneProps>(({ getFrequencyData }, ref) => {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const visualizer = useSnapshot(visualizerStore);
+
+  useImperativeHandle(ref, () => ({
+    getCanvas: () => canvasRef.current,
+  }));
 
   return (
     <div className="h-full w-full">
       <Canvas
+        ref={canvasRef}
         camera={{ position: [0, 7.5, 12], fov: 52 }}
-        gl={async (canvas: HTMLCanvasElement) => {
-          const renderer = new THREE.WebGPURenderer({
-            canvas,
-            antialias: true,
-          });
-          await renderer.init();
-          return renderer;
+        gl={async (props) => {
+          const renderer = new THREE.WebGPURenderer(props as any)
+          await renderer.init()
+          return renderer
         }}
         className="bg-zinc-950"
       >
@@ -102,7 +111,8 @@ export const VisualizerScene = ({ getFrequencyData }: VisualizerSceneProps) => {
         />
 
         <Environment preset="night" />
+        <WorldEffects />
       </Canvas>
     </div>
   );
-};
+});

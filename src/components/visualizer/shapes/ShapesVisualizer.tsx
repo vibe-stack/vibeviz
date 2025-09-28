@@ -5,7 +5,6 @@ import { useEffect, useMemo, useRef } from "react";
 import type { Group, Mesh } from "three/webgpu";
 import { MathUtils, MeshStandardMaterial, Vector3 } from "three/webgpu";
 import type { ShapesSettings } from "@/state/visualizer-store";
-import { useAudioAnalysis } from "../particles/hooks/useAudioAnalysis";
 import { createShapeGeometry } from "./geometries";
 
 interface ShapesVisualizerProps {
@@ -42,7 +41,8 @@ export const ShapesVisualizer = ({
       settings.animation.rotate.axis.z,
     );
 
-    if (axis.lengthSq() < 1e-4) {
+    // If axis is zero vector, default to Y-axis
+    if (axis.lengthSq() < 1e-6) {
       axis.set(0, 1, 0);
     }
 
@@ -60,8 +60,6 @@ export const ShapesVisualizer = ({
     z: 0,
   });
 
-  const getAudioAnalysis = useAudioAnalysis(getFrequencyData);
-
   const rotationStateRef = useRef({
     direction: 1,
     beatLatch: 0,
@@ -78,20 +76,17 @@ export const ShapesVisualizer = ({
     pulse: 0,
   });
 
+  const audioStateRef = useRef({
+    smoothedBeat: 0,
+    lastBeatTime: 0,
+  });
+
   useEffect(() => () => geometry.dispose(), [geometry]);
 
   useEffect(() => () => material.dispose(), [material]);
 
   useEffect(() => {
     rotationAxisRef.current.copy(rotationAxis);
-    rotationStateRef.current.direction = 1;
-    rotationStateRef.current.beatLatch = 0;
-    rotationStateRef.current.tempTimer = 0;
-    rotationStateRef.current.tempActive = false;
-
-    if (meshRef.current) {
-      meshRef.current.rotation.set(0, 0, 0);
-    }
   }, [rotationAxis]);
 
   useEffect(() => {
@@ -100,6 +95,7 @@ export const ShapesVisualizer = ({
     rotationStateRef.current.tempTimer = 0;
     rotationStateRef.current.tempActive = false;
 
+    // Only reset rotation if disabled
     if (!rotationSettings.enabled && meshRef.current) {
       meshRef.current.rotation.set(0, 0, 0);
     }
@@ -159,17 +155,12 @@ export const ShapesVisualizer = ({
     scaleStateRef.current.tempActive = false;
     scaleStateRef.current.pulse = 0;
 
-    if (meshRef.current) {
-      meshRef.current.scale.setScalar(1);
-    }
-
+    // Only reset scale if disabled
     if (!scaleSettings.enabled && meshRef.current) {
       meshRef.current.scale.setScalar(1);
     }
   }, [
     scaleSettings.enabled,
-    scaleSettings.max,
-    scaleSettings.min,
     scaleSettings.mode,
   ]);
 
@@ -195,8 +186,24 @@ export const ShapesVisualizer = ({
       mesh.visible = true;
     }
 
-    const analysis = getAudioAnalysis();
-    const beatStrength = clamp(analysis.beat, 0, 1.5);
+    // Get audio data and calculate beat strength - simplified approach like CircularVisualizer
+    const frequencyData = getFrequencyData();
+    let averageFreq = 0;
+    for (let i = 0; i < Math.min(frequencyData.length, 64); i++) {
+      averageFreq += frequencyData[i];
+    }
+    averageFreq /= Math.min(frequencyData.length, 64);
+    
+    // Normalize and smooth
+    const normalizedFreq = averageFreq / 255;
+    const audioState = audioStateRef.current;
+    audioState.smoothedBeat = audioState.smoothedBeat * 0.85 + normalizedFreq * 0.15;
+    
+    // Simple beat detection - when current is significantly higher than average
+    const beatStrength = Math.max(0, (normalizedFreq - audioState.smoothedBeat) * 4);
+    
+    // Also use raw amplitude for more responsive animations
+    const amplitude = normalizedFreq;
 
     const rotationState = rotationStateRef.current;
     rotationState.beatLatch = Math.max(rotationState.beatLatch - delta, 0);
@@ -206,37 +213,45 @@ export const ShapesVisualizer = ({
       let speed = rotationSettings.speed;
       const axis = rotationAxisRef.current;
 
+      // Base continuous rotation
+      let baseSpeed = speed * 0.3; // Slower base rotation
+
       switch (rotationSettings.mode) {
         case "slowDownOnBeat": {
-          speed *= 1 - clamp(beatStrength * 0.75, 0, 0.7);
+          speed = baseSpeed * (1 - clamp(beatStrength * 0.8, 0, 0.7));
           break;
         }
         case "speedUpOnBeat": {
-          speed *= 1 + beatStrength * 1.4;
+          speed = baseSpeed * (1 + beatStrength * 2.5 + amplitude * 1.5);
           break;
         }
         case "reverseOnBeat": {
-          if (beatStrength > 0.45 && rotationState.beatLatch <= 0) {
+          if (beatStrength > 0.2 && rotationState.beatLatch <= 0) {
             rotationState.direction *= -1;
-            rotationState.beatLatch = 0.24;
+            rotationState.beatLatch = 0.5;
           }
+          speed = baseSpeed;
           break;
         }
         case "temporaryReverseOnBeat": {
-          if (!rotationState.tempActive && beatStrength > 0.45) {
+          if (!rotationState.tempActive && beatStrength > 0.2) {
             rotationState.tempActive = true;
             rotationState.direction = -1;
-            rotationState.tempTimer = 0.32;
+            rotationState.tempTimer = 0.6;
           }
 
           if (rotationState.tempActive && rotationState.tempTimer <= 0) {
             rotationState.tempActive = false;
             rotationState.direction = 1;
           }
+          speed = baseSpeed;
           break;
         }
-        default:
+        default: {
+          // Default continuous rotation
+          speed = baseSpeed;
           break;
+        }
       }
 
       const direction = rotationState.direction;
@@ -247,7 +262,7 @@ export const ShapesVisualizer = ({
     const scaleState = scaleStateRef.current;
     scaleState.beatLatch = Math.max(scaleState.beatLatch - delta, 0);
     scaleState.tempTimer = Math.max(scaleState.tempTimer - delta, 0);
-    scaleState.pulse = Math.max(scaleState.pulse - delta * 3.2, 0);
+    scaleState.pulse = Math.max(scaleState.pulse - delta * 4.0, 0);
 
     if (scaleSettings.enabled) {
       const minRange = clamp(
@@ -262,54 +277,65 @@ export const ShapesVisualizer = ({
       );
 
       let speed = scaleSettings.speed;
+      
+      // Base continuous scaling
+      let baseSpeed = speed * 0.5; // Slower base scaling
 
       switch (scaleSettings.mode) {
         case "slowDownOnBeat": {
-          speed *= 1 - clamp(beatStrength * 0.7, 0, 0.65);
+          speed = baseSpeed * (1 - clamp(beatStrength * 0.8, 0, 0.75));
           break;
         }
         case "speedUpOnBeat": {
-          speed *= 1 + beatStrength * 1.25;
+          speed = baseSpeed * (1 + beatStrength * 1.8);
           break;
         }
         case "reverseOnBeat": {
-          if (beatStrength > 0.45 && scaleState.beatLatch <= 0) {
+          if (beatStrength > 0.3 && scaleState.beatLatch <= 0) {
             scaleState.direction *= -1;
-            scaleState.beatLatch = 0.24;
+            scaleState.beatLatch = 0.3;
           }
+          speed = baseSpeed;
           break;
         }
         case "temporaryReverseOnBeat": {
-          if (!scaleState.tempActive && beatStrength > 0.45) {
+          if (!scaleState.tempActive && beatStrength > 0.3) {
             scaleState.tempActive = true;
             scaleState.direction = -1;
-            scaleState.tempTimer = 0.28;
+            scaleState.tempTimer = 0.35;
           }
 
           if (scaleState.tempActive && scaleState.tempTimer <= 0) {
             scaleState.tempActive = false;
             scaleState.direction = 1;
           }
+          speed = baseSpeed;
           break;
         }
         case "heartbeat": {
-          scaleState.pulse = Math.max(scaleState.pulse, beatStrength * 0.75);
-          speed *= 1 + beatStrength * 0.8;
+          scaleState.pulse = Math.max(scaleState.pulse, beatStrength * 1.2);
+          speed = baseSpeed * (1 + beatStrength * 1.2);
           break;
         }
-        default:
+        default: {
+          // Default continuous scaling
+          speed = baseSpeed;
           break;
+        }
       }
 
       scaleState.phase += delta * speed * scaleState.direction;
 
       let progress = (Math.sin(scaleState.phase) + 1) / 2;
       if (scaleSettings.mode === "heartbeat") {
-        progress = Math.min(1, progress + scaleState.pulse * 0.3);
+        progress = Math.min(1, progress + scaleState.pulse * 0.5);
       }
 
       const scaleValue = minRange + (maxRange - minRange) * progress;
       mesh.scale.setScalar(scaleValue);
+    } else {
+      // Reset scale when disabled
+      mesh.scale.setScalar(1);
     }
   });
 
