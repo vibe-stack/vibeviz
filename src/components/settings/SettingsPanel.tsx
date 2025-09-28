@@ -1,13 +1,14 @@
 "use client";
 
 import { Tabs } from "@base-ui-components/react/tabs";
-import { Globe2, Shapes, Sparkles } from "lucide-react";
+import { Globe2, Settings, Shapes, Sparkles } from "lucide-react";
 import { cn } from "@/utils/tailwind";
 import { BarsSection } from "./BarsSection";
 import { ParticlesSection } from "./ParticlesSection";
 import { ShadersSection } from "./ShadersSection";
 import { ShapesSection } from "./ShapesSection";
 import { WorldSection } from "./WorldSection";
+import { SettingsManager } from "./SettingsManager";
 
 export const SettingsPanel = () => {
   return (
@@ -20,11 +21,12 @@ export const SettingsPanel = () => {
       </div>
 
       <Tabs.Root defaultValue="primitives" className="flex h-full flex-col">
-        <Tabs.List className="grid grid-cols-3 gap-2 px-5 pt-4 text-xs font-medium">
+        <Tabs.List className="grid grid-cols-4 gap-2 px-5 pt-4 text-xs font-medium">
           {[
             { value: "primitives", icon: Shapes, label: "Primitives" },
             { value: "shaders", icon: Sparkles, label: "Shaders" },
             { value: "world", icon: Globe2, label: "World" },
+            { value: "settings", icon: Settings, label: "Settings" },
           ].map((tab) => (
             <Tabs.Tab
               key={tab.value}
@@ -62,6 +64,13 @@ export const SettingsPanel = () => {
           className="flex-1 space-y-6 overflow-y-auto px-5 pb-8 pt-4 max-h-[80dvh]"
         >
           <WorldSection />
+        </Tabs.Panel>
+
+        <Tabs.Panel
+          value="settings"
+          className="flex-1 space-y-6 overflow-y-auto px-5 pb-8 pt-4 max-h-[80dvh]"
+        >
+          <SettingsManager />
         </Tabs.Panel>
       </Tabs.Root>
     </aside>

@@ -106,13 +106,13 @@ export const BarsSection = () => {
         value={visualizer.bars.barCount}
         onChange={(value) =>
           visualizerActions.updateBars({
-            barCount: Math.round(clamp(value, 32, 160)),
+            barCount: Math.round(clamp(value, 32, 360)),
           })
         }
         step={1}
         precision={0}
         min={32}
-        max={160}
+        max={360}
         suffix="bars"
       />
       <div className="grid grid-cols-1 gap-3">

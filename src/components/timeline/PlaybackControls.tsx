@@ -53,7 +53,7 @@ export const PlaybackControls = ({
 
       <VolumeSlider volume={volume} onVolumeChange={onVolumeChange} />
 
-      {/* {onExport && (
+      {onExport && (
         <button
           onClick={onExport}
           disabled={disabled || isExporting}
@@ -101,7 +101,7 @@ export const PlaybackControls = ({
             </>
           )}
         </button>
-      )} */}
+      )}
     </div>
   );
 };

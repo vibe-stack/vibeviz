@@ -114,12 +114,12 @@ export const ParticlesSection = () => {
           value={visualizer.particles.global.count}
           onChange={(value) =>
             visualizerActions.updateParticleGlobal({
-              count: Math.round(clamp(value, 200, 3000)),
+              count: Math.round(clamp(value, 20, 3000)),
             })
           }
           step={25}
           precision={0}
-          min={200}
+          min={20}
           max={3000}
           suffix="pts"
         />

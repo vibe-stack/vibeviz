@@ -6,6 +6,7 @@ import type { Group, Mesh } from "three/webgpu";
 import { MathUtils, MeshStandardMaterial, Vector3 } from "three/webgpu";
 import type { ShapesSettings } from "@/state/visualizer-store";
 import { createShapeGeometry } from "./geometries";
+import { usePlaybackTimeRef } from "@/context/playback-time-context";
 
 interface ShapesVisualizerProps {
   getFrequencyData: () => Uint8Array;
@@ -15,11 +16,15 @@ interface ShapesVisualizerProps {
 const clamp = (value: number, min: number, max: number) =>
   Math.max(min, Math.min(max, value));
 
+const ACTIVITY_THRESHOLD = 0.02;
+const EPSILON = 1e-6;
+
 export const ShapesVisualizer = ({
   getFrequencyData,
   settings,
 }: ShapesVisualizerProps) => {
   const isEnabled = settings.enabled;
+  const playbackTimeRef = usePlaybackTimeRef();
 
   const groupRef = useRef<Group>(null);
   const meshRef = useRef<Mesh>(null);
@@ -186,6 +191,10 @@ export const ShapesVisualizer = ({
       mesh.visible = true;
     }
 
+    // Cap delta to prevent runaway animations during export
+    // Normal 60fps delta is ~0.0167, cap at double that to be safe
+    const clampedDelta = Math.min(delta, 1 / 30); // ~0.033 max
+
     // Get audio data and calculate beat strength - simplified approach like CircularVisualizer
     const frequencyData = getFrequencyData();
     let averageFreq = 0;
@@ -201,20 +210,32 @@ export const ShapesVisualizer = ({
     
     // Simple beat detection - when current is significantly higher than average
     const beatStrength = Math.max(0, (normalizedFreq - audioState.smoothedBeat) * 4);
-    
+
     // Also use raw amplitude for more responsive animations
     const amplitude = normalizedFreq;
 
+    const activityLevel = clamp(
+      (Math.max(amplitude, beatStrength) - ACTIVITY_THRESHOLD) /
+        Math.max(1 - ACTIVITY_THRESHOLD, EPSILON),
+      0,
+      1,
+    );
+
     const rotationState = rotationStateRef.current;
-    rotationState.beatLatch = Math.max(rotationState.beatLatch - delta, 0);
-    rotationState.tempTimer = Math.max(rotationState.tempTimer - delta, 0);
+    rotationState.beatLatch = Math.max(rotationState.beatLatch - clampedDelta, 0);
+    rotationState.tempTimer = Math.max(rotationState.tempTimer - clampedDelta, 0);
 
     if (rotationSettings.enabled && rotationSettings.speed !== 0) {
+      if (activityLevel <= 0) {
+        rotationState.direction = 1;
+        rotationState.tempActive = false;
+      }
+
       let speed = rotationSettings.speed;
       const axis = rotationAxisRef.current;
 
       // Base continuous rotation
-      let baseSpeed = speed * 0.3; // Slower base rotation
+      let baseSpeed = speed * 0.3 * activityLevel; // Slower base rotation scaled by activity
 
       switch (rotationSettings.mode) {
         case "slowDownOnBeat": {
@@ -255,14 +276,17 @@ export const ShapesVisualizer = ({
       }
 
       const direction = rotationState.direction;
+      const frameRotation = direction * speed * clampedDelta;
 
-      mesh.rotateOnAxis(axis, direction * speed * delta);
+      if (Math.abs(frameRotation) > EPSILON) {
+        mesh.rotateOnAxis(axis, frameRotation);
+      }
     }
 
     const scaleState = scaleStateRef.current;
-    scaleState.beatLatch = Math.max(scaleState.beatLatch - delta, 0);
-    scaleState.tempTimer = Math.max(scaleState.tempTimer - delta, 0);
-    scaleState.pulse = Math.max(scaleState.pulse - delta * 4.0, 0);
+    scaleState.beatLatch = Math.max(scaleState.beatLatch - clampedDelta, 0);
+    scaleState.tempTimer = Math.max(scaleState.tempTimer - clampedDelta, 0);
+    scaleState.pulse = Math.max(scaleState.pulse - clampedDelta * 4.0, 0);
 
     if (scaleSettings.enabled) {
       const minRange = clamp(
@@ -277,9 +301,9 @@ export const ShapesVisualizer = ({
       );
 
       let speed = scaleSettings.speed;
-      
+
       // Base continuous scaling
-      let baseSpeed = speed * 0.5; // Slower base scaling
+      let baseSpeed = speed * 0.5 * activityLevel; // Slower base scaling scaled by activity
 
       switch (scaleSettings.mode) {
         case "slowDownOnBeat": {
@@ -313,7 +337,12 @@ export const ShapesVisualizer = ({
           break;
         }
         case "heartbeat": {
-          scaleState.pulse = Math.max(scaleState.pulse, beatStrength * 1.2);
+          if (activityLevel > 0) {
+            scaleState.pulse = Math.max(
+              scaleState.pulse,
+              beatStrength * activityLevel * 1.2,
+            );
+          }
           speed = baseSpeed * (1 + beatStrength * 1.2);
           break;
         }
@@ -324,7 +353,14 @@ export const ShapesVisualizer = ({
         }
       }
 
-      scaleState.phase += delta * speed * scaleState.direction;
+      if (activityLevel > 0) {
+        scaleState.phase += clampedDelta * speed * scaleState.direction;
+      } else {
+        // Ease phase back to neutral when inactive
+        scaleState.phase += (0 - scaleState.phase) * Math.min(1, clampedDelta * 3);
+        scaleState.direction = 1;
+        scaleState.tempActive = false;
+      }
 
       let progress = (Math.sin(scaleState.phase) + 1) / 2;
       if (scaleSettings.mode === "heartbeat") {

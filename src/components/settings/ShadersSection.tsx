@@ -330,13 +330,13 @@ export const ShadersSection = () => {
             value={visualizer.shaderSettings.smoke.speed}
             onChange={(value) =>
               visualizerActions.updateShader("smoke", {
-                speed: clamp(value, 0.05, 1.2),
+                speed: clamp(value, 0.05, 8),
               })
             }
             step={0.02}
             precision={2}
             min={0.05}
-            max={1.2}
+            max={8}
           />
           <DragInput
             label="Contrast"

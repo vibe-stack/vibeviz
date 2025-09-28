@@ -16,6 +16,9 @@ export class AudioProcessor {
     )();
     this.analyser = this.audioContext.createAnalyser();
     this.analyser.fftSize = 512;
+    this.analyser.smoothingTimeConstant = 0.8;
+    this.analyser.minDecibels = -100;
+    this.analyser.maxDecibels = -30;
     this.dataArray = new Uint8Array(
       new ArrayBuffer(this.analyser.frequencyBinCount),
     );

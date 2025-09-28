@@ -1,4 +1,4 @@
-import { proxy } from "valtio";
+import { proxy, subscribe } from "valtio";
 
 export type ShaderPreset =
   | "none"
@@ -273,7 +273,7 @@ const defaultShapeMaterial = (color: string): ShapeMaterialSettings => ({
   emissiveIntensity: 0.8,
 });
 
-export const visualizerStore = proxy<VisualizerStore>({
+const createDefaultStore = (): VisualizerStore => ({
   shader: "none",
   bars: {
     enabled: true,
@@ -451,6 +451,36 @@ export const visualizerStore = proxy<VisualizerStore>({
   },
 });
 
+export const visualizerStore = proxy<VisualizerStore>(createDefaultStore());
+
+// Auto-load settings from localStorage on initialization
+if (typeof window !== "undefined") {
+  try {
+    const saved = localStorage.getItem("vibeviz-settings");
+    if (saved) {
+      const parsedSettings = JSON.parse(saved);
+      Object.assign(visualizerStore, parsedSettings);
+    }
+  } catch (error) {
+    console.warn("Failed to load saved settings from localStorage:", error);
+  }
+
+  // Auto-save settings to localStorage when they change
+  let saveTimeout: NodeJS.Timeout;
+  subscribe(visualizerStore, () => {
+    // Debounce the save operation to avoid excessive writes
+    clearTimeout(saveTimeout);
+    saveTimeout = setTimeout(() => {
+      try {
+        const settings = JSON.stringify(visualizerStore, null, 2);
+        localStorage.setItem("vibeviz-settings", settings);
+      } catch (error) {
+        console.warn("Failed to auto-save settings to localStorage:", error);
+      }
+    }, 500); // Save 500ms after the last change
+  });
+}
+
 export const visualizerActions = {
   setShader(shader: ShaderPreset) {
     visualizerStore.shader = shader;
@@ -536,5 +566,118 @@ export const visualizerActions = {
   },
   updateFog(partial: Partial<FogSettings>) {
     Object.assign(visualizerStore.world.fog, partial);
+  },
+
+  // Export/Import functionality
+  exportSettings(): string {
+    try {
+      const settings = JSON.stringify(visualizerStore, null, 2);
+      return settings;
+    } catch (error) {
+      console.error("Failed to export settings:", error);
+      throw new Error("Failed to export settings");
+    }
+  },
+
+  downloadSettings(filename?: string) {
+    try {
+      const settings = this.exportSettings();
+      const blob = new Blob([settings], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename || `vibeviz-settings-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Failed to download settings:", error);
+      throw new Error("Failed to download settings");
+    }
+  },
+
+  importSettings(jsonString: string): boolean {
+    try {
+      const parsedSettings = JSON.parse(jsonString);
+      
+      // Validate the structure has the main sections
+      if (!parsedSettings || typeof parsedSettings !== "object") {
+        throw new Error("Invalid settings format");
+      }
+
+      const requiredKeys = ["shader", "bars", "particles", "shapes", "shaderSettings", "world"];
+      const missingKeys = requiredKeys.filter(key => !(key in parsedSettings));
+      
+      if (missingKeys.length > 0) {
+        throw new Error(`Missing required settings: ${missingKeys.join(", ")}`);
+      }
+
+      // Apply settings by merging with current store
+      Object.assign(visualizerStore, parsedSettings);
+      
+      // Save to localStorage for persistence
+      this.saveToLocalStorage();
+      
+      return true;
+    } catch (error) {
+      console.error("Failed to import settings:", error);
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      throw new Error(`Failed to import settings: ${errorMessage}`);
+    }
+  },
+
+  async importFromFile(file: File): Promise<boolean> {
+    try {
+      const text = await file.text();
+      return this.importSettings(text);
+    } catch (error) {
+      console.error("Failed to read settings file:", error);
+      throw new Error("Failed to read settings file");
+    }
+  },
+
+  // Local storage persistence
+  saveToLocalStorage() {
+    try {
+      const settings = this.exportSettings();
+      localStorage.setItem("vibeviz-settings", settings);
+    } catch (error) {
+      console.error("Failed to save to localStorage:", error);
+    }
+  },
+
+  loadFromLocalStorage(): boolean {
+    try {
+      const saved = localStorage.getItem("vibeviz-settings");
+      if (saved) {
+        this.importSettings(saved);
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error("Failed to load from localStorage:", error);
+      return false;
+    }
+  },
+
+  clearLocalStorage() {
+    try {
+      localStorage.removeItem("vibeviz-settings");
+    } catch (error) {
+      console.error("Failed to clear localStorage:", error);
+    }
+  },
+
+  resetToDefaults() {
+    try {
+      // Create a new instance with default values
+      const defaultStore = createDefaultStore();
+      Object.assign(visualizerStore, defaultStore);
+      this.saveToLocalStorage();
+    } catch (error) {
+      console.error("Failed to reset to defaults:", error);
+      throw new Error("Failed to reset to defaults");
+    }
   },
 };
