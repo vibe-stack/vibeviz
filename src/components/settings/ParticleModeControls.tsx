@@ -369,6 +369,32 @@ export const ParticleModeControls = () => {
             min={0.2}
             max={1.4}
           />
+          <DragInput
+            label="Impact"
+            value={nebula.impact}
+            onChange={(value) =>
+              visualizerActions.updateParticlePreset("nebula", {
+                impact: clamp(value, 0, 2),
+              })
+            }
+            step={0.02}
+            precision={2}
+            min={0}
+            max={2}
+          />
+          <DragInput
+            label="Smoothing"
+            value={nebula.smoothing}
+            onChange={(value) =>
+              visualizerActions.updateParticlePreset("nebula", {
+                smoothing: clamp(value, 0, 1),
+              })
+            }
+            step={0.01}
+            precision={2}
+            min={0}
+            max={1}
+          />
         </div>
       );
     }

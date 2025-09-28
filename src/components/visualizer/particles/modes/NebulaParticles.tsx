@@ -55,6 +55,13 @@ export const NebulaParticles = ({
 }: Props) => {
   const meshRef = useRef<InstancedMesh>(null);
   const dataRef = useRef<NebulaData | null>(null);
+  const smoothedAudioRef = useRef({
+    initialized: false,
+    low: 0,
+    mid: 0,
+    high: 0,
+    beat: 0,
+  });
 
   const dummyMatrix = useMemo(() => new Matrix4(), []);
   const dummyPosition = useMemo(() => new Vector3(), []);
@@ -70,7 +77,7 @@ export const NebulaParticles = ({
     }
   }, [global.count, global.spawnRadius]);
 
-  useFrame(() => {
+  useFrame((_, delta) => {
     const mesh = meshRef.current;
     const data = dataRef.current;
     if (!mesh || !data) return;
@@ -79,6 +86,35 @@ export const NebulaParticles = ({
     const time = playbackTimeRef.current;
 
     const { origins, seeds, energies } = data;
+
+    const smoothingAmount = Math.min(Math.max(params.smoothing, 0), 1);
+    const smoothingTime = smoothingAmount * 0.45;
+    const lerpFactor = smoothingAmount <= 0 ? 1 : delta / (smoothingTime + delta);
+
+    const smoothed = smoothedAudioRef.current;
+    if (!smoothed.initialized) {
+      smoothed.low = audio.bands.low;
+      smoothed.mid = audio.bands.mid;
+      smoothed.high = audio.bands.high;
+      smoothed.beat = audio.beat;
+      smoothed.initialized = true;
+    } else {
+      smoothed.low += (audio.bands.low - smoothed.low) * lerpFactor;
+      smoothed.mid += (audio.bands.mid - smoothed.mid) * lerpFactor;
+      smoothed.high += (audio.bands.high - smoothed.high) * lerpFactor;
+      smoothed.beat += (audio.beat - smoothed.beat) * lerpFactor;
+    }
+
+    const impact = Math.max(0, params.impact);
+    const impactedLow = smoothed.low * impact;
+    const impactedMid = smoothed.mid * impact;
+    const impactedHigh = smoothed.high * impact;
+    const impactedBeat = smoothed.beat * impact;
+
+    const curlStrength = params.curlStrength * (0.4 + impactedMid * 1.2);
+    const shimmer = params.shimmer * (0.5 + impactedHigh * 1.1);
+    const energyTargetBase =
+      impactedLow * 0.5 + impactedHigh * 0.7 + impactedBeat * shimmer;
 
     for (let i = 0; i < global.count; i += 1) {
       const baseX = origins[i * 3];
@@ -92,9 +128,6 @@ export const NebulaParticles = ({
         baseZ * params.noiseScale * 0.3 - time * params.driftSpeed,
         0.5,
       );
-
-      const curlStrength = params.curlStrength * (0.4 + audio.bands.mid * 1.2);
-      const shimmer = params.shimmer * (0.5 + audio.bands.high * 1.1);
 
       const offsetX = flow.x * curlStrength * global.spawnRadius;
       const offsetY = flow.y * curlStrength * global.spawnRadius * 0.8;
@@ -111,8 +144,7 @@ export const NebulaParticles = ({
       const y = baseY + offsetY + noise * global.spawnRadius * 0.32;
       const z = baseZ + offsetZ + noise * global.spawnRadius * 0.45;
 
-      const energyTarget =
-        audio.bands.low * 0.5 + audio.bands.high * 0.7 + audio.beat * shimmer;
+      const energyTarget = energyTargetBase;
       const decay = 1 - Math.min(0.88, global.trail * params.fade);
       energies[i] = energies[i] * decay + energyTarget * (1 - decay);
 
@@ -136,8 +168,10 @@ export const NebulaParticles = ({
     }
 
     material.emissiveIntensity =
-      materialConfig.emissiveIntensity * (0.6 + audio.bands.high * 1.1 + audio.beat * 0.8);
-    material.opacity = materialConfig.opacity * (0.85 + audio.bands.mid * 0.15);
+      materialConfig.emissiveIntensity *
+      (0.6 + impactedHigh * 1.1 + impactedBeat * 0.8);
+    material.opacity =
+      materialConfig.opacity * (0.85 + impactedMid * 0.15);
   });
 
   return (

@@ -153,6 +153,8 @@ export interface NebulaSettings {
   curlStrength: number;
   shimmer: number;
   fade: number;
+  impact: number;
+  smoothing: number;
 }
 
 export interface ParticlePresetSettings {
@@ -298,6 +300,8 @@ export const visualizerStore = proxy<VisualizerStore>({
         curlStrength: 0.65,
         shimmer: 0.6,
         fade: 0.52,
+        impact: 1,
+        smoothing: 0.35,
       },
     },
   },
