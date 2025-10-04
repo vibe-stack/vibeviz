@@ -68,10 +68,12 @@ export class ExportManager {
       // Maintain aspect ratio - fit within target resolution
       if (sourceAspect > targetAspect) {
         // Source is wider - fit to width
-        scaledHeight = Math.round(targetResolution.width / sourceAspect);
+        // Round to nearest even number (required for video codecs)
+        scaledHeight = Math.round(targetResolution.width / sourceAspect / 2) * 2;
       } else {
         // Source is taller - fit to height
-        scaledWidth = Math.round(targetResolution.height * sourceAspect);
+        // Round to nearest even number (required for video codecs)
+        scaledWidth = Math.round(targetResolution.height * sourceAspect / 2) * 2;
       }
 
       // Create offscreen canvas for scaling
