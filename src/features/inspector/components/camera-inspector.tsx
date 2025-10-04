@@ -25,6 +25,23 @@ export function CameraInspector({ object }: CameraInspectorProps) {
     addKeyframe(object.id, "isActive", currentTime, object.isActive);
   };
 
+  const handleTargetChange = (
+    component: "x" | "y" | "z",
+    value: number,
+  ) => {
+    updateObject(object.id, {
+      target: {
+        ...object.target,
+        [component]: value,
+      },
+    });
+  };
+
+  const handleKeyframeTarget = (component: "x" | "y" | "z") => {
+    const value = object.target[component];
+    addKeyframe(object.id, `target.${component}`, currentTime, value);
+  };
+
   return (
     <>
       <TransformSection objectId={object.id} transform={object.transform} />
@@ -62,6 +79,36 @@ export function CameraInspector({ object }: CameraInspectorProps) {
             max={120}
             compact
           />
+        </div>
+
+        <div className="space-y-2">
+          <p className="text-xs font-medium text-neutral-400">Look At Target</p>
+          <div className="grid grid-cols-3 gap-2">
+            {(["x", "y", "z"] as const).map((component) => (
+              <div key={component} className="flex flex-col gap-1">
+                <span className="text-[10px] text-neutral-500 uppercase">
+                  {component}
+                </span>
+                <div className="flex items-center gap-1">
+                  <DragInput
+                    value={object.target[component]}
+                    onChange={(v) => handleTargetChange(component, v)}
+                    step={0.1}
+                    precision={2}
+                    compact
+                  />
+                  <button
+                    type="button"
+                    onClick={() => handleKeyframeTarget(component)}
+                    className="p-1 hover:bg-neutral-700 rounded transition-colors flex-shrink-0"
+                    title="Add keyframe"
+                  >
+                    <Diamond className="w-3 h-3 text-emerald-400" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </>

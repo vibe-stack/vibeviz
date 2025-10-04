@@ -202,6 +202,14 @@ function applyPropertyValue(
         },
       },
     });
+  } else if (parts[0] === "target") {
+    // e.g., "target.x"
+    const component = parts[1] as "x" | "y" | "z";
+    updateObject(objectId, {
+      target: {
+        [component]: value,
+      },
+    });
   } else if (parts[0] === "material") {
     // e.g., "material.color"
     const key = parts[1];

@@ -68,6 +68,7 @@ export const createCamera = (name?: string): CameraObject => ({
   },
   isActive: false,
   fov: 50,
+  target: { x: 0, y: 0, z: 0 },
   visible: true,
 });
 

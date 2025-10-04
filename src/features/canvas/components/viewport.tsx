@@ -6,7 +6,7 @@ import { useAtomValue, useSetAtom } from "jotai";
 import { useEffect, useMemo, useState } from "react";
 import * as THREE from "three/webgpu";
 import { sceneObjectsAtom, selectedObjectIdsAtom } from "@/features/scene/state";
-import type { PostprocessorObject } from "@/features/scene/types";
+import type { CameraObject, PostprocessorObject } from "@/features/scene/types";
 import { PostprocessingRenderer, SceneRenderer } from "./index";
 
 interface ViewportProps {
@@ -37,6 +37,15 @@ export function Viewport({ onCanvasReady }: ViewportProps) {
     [objects],
   );
 
+  // Check if there's an active custom camera
+  const hasActiveCamera = useMemo(
+    () =>
+      objects.some(
+        (obj): obj is CameraObject => obj.type === "camera" && obj.isActive,
+      ),
+    [objects],
+  );
+
   return (
     <div className="relative w-full h-full rounded-2xl border border-neutral-800 bg-neutral-900/50 overflow-hidden">
       <Canvas
@@ -63,7 +72,7 @@ export function Viewport({ onCanvasReady }: ViewportProps) {
           {/* <ambientLight intensity={0.3} /> */}
           {/* <pointLight position={[10, 10, 10]} intensity={1} /> */}
           <SceneRenderer objects={objects} />
-          <OrbitControls />
+          {!hasActiveCamera && <OrbitControls />}
           <PostprocessingRenderer postprocessors={postprocessors} />
           <CanvasCapture onCanvasReady={onCanvasReady} />
         </PerformanceMonitor>

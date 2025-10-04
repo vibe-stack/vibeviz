@@ -103,6 +103,7 @@ export type CameraObject = BaseObject & {
   type: "camera";
   isActive: boolean;
   fov: number;
+  target: Vector3;
 };
 
 export type PostprocessorObject = {

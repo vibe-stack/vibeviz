@@ -66,6 +66,14 @@ export const updateObjectAtom = atom(
           };
         }
 
+        // Handle target (cameras)
+        if (updatesAny.target && "target" in obj) {
+          updated.target = {
+            ...obj.target,
+            ...updatesAny.target,
+          };
+        }
+
         // Handle material (only primitives)
         if (updatesAny.material && "material" in obj) {
           updated.material = { ...updated.material, ...updatesAny.material };
@@ -73,7 +81,7 @@ export const updateObjectAtom = atom(
 
         // Merge other top-level properties
         Object.keys(updates).forEach((key) => {
-          if (key !== "transform" && key !== "material") {
+          if (key !== "transform" && key !== "material" && key !== "target") {
             updated[key] = updatesAny[key];
           }
         });
