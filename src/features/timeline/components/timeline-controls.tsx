@@ -80,7 +80,7 @@ export function TimelineControls() {
   );
 
   return (
-    <div className="flex items-center gap-4 px-4 py-3 rounded-2xl border border-neutral-800 bg-neutral-900/80 backdrop-blur-sm">
+    <div className="flex items-center gap-4 px-4 py-3 rounded-tl-2xl border-t border-l border-neutral-800 bg-neutral-900/80 backdrop-blur-sm">
       {/* Left side - Audio controls */}
       <input
         ref={fileInputRef}

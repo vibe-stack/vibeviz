@@ -95,19 +95,17 @@ export function ComposeBar({ onExport, onSave, onExportZip }: ComposeBarProps) {
   };
 
   return (
-    <div className="flex items-center gap-2 px-4 py-3 rounded-2xl border border-neutral-800 bg-neutral-900/80 backdrop-blur-sm">
+    <div className="flex items-center gap-2 px-2 py-2 rounded-b-2xl border border-neutral-800 bg-neutral-900/80 backdrop-blur-sm">
       {/* Home Link */}
       <Link
         href="/"
-        className="flex h-8 items-center justify-center gap-2 rounded-lg border border-neutral-700 bg-neutral-800 px-3 text-xs font-medium text-neutral-200 select-none hover:bg-neutral-700 focus-visible:outline-2 focus-visible:-outline-offset-1 focus-visible:outline-purple-500 active:bg-neutral-700 transition-colors"
+        className="flex h-8 items-center justify-center gap-2 rounded-lg px-3 text-xs font-medium text-neutral-200 select-none hover:bg-neutral-700 focus-visible:outline-2 focus-visible:-outline-offset-1 focus-visible:outline-purple-500 active:bg-neutral-700 transition-colors"
         title="Back to Home"
       >
         <Home className="w-3.5 h-3.5" />
       </Link>
 
       <div className="w-px h-6 bg-neutral-700" />
-      
-      <span className="text-xs text-neutral-400 mr-2">Add:</span>
       
       {/* Hidden file input for GLB */}
       <input

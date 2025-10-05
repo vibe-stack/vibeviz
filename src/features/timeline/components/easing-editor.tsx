@@ -137,7 +137,7 @@ export function EasingEditor() {
 
   if (!canShowEditor) {
     return (
-      <div className="w-80 flex-shrink-0 rounded-2xl border border-neutral-800 bg-neutral-900/60 backdrop-blur-sm p-4">
+      <div className="w-80 flex-shrink-0 rounded-tr-2xl border-r border-t border-neutral-800 bg-neutral-900/60 backdrop-blur-sm p-4">
         <h2 className="text-sm font-semibold text-neutral-200 mb-3">
           Easing Editor
         </h2>
@@ -163,7 +163,7 @@ export function EasingEditor() {
   const hasMultipleEasings = easingCounts.size > 1;
 
   return (
-    <div className="w-80 flex-shrink-0 rounded-2xl border border-neutral-800 bg-neutral-900/60 backdrop-blur-sm p-4">
+    <div className="w-80 flex-shrink-0 rounded-tr-2xl border-t border-r border-neutral-800 bg-neutral-900/60 backdrop-blur-sm p-4">
       <h2 className="text-sm font-semibold text-neutral-200 mb-3">
         Easing Editor
       </h2>

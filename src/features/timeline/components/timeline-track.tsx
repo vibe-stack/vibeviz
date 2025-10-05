@@ -443,8 +443,8 @@ export function TimelineTrack() {
   };
 
   return (
-    <div className="flex flex-col rounded-2xl border border-neutral-800 bg-neutral-900/60 backdrop-blur-sm overflow-hidden">
-      <div className="px-4 py-2 border-b border-neutral-800 flex items-center justify-between">
+    <div className="flex flex-col border-l border-neutral-800 bg-neutral-900/60 backdrop-blur-sm overflow-hidden h-full">
+      <div className="px-4 py-2 border-b border-neutral-800 flex items-center justify-between flex-shrink-0">
         <h2 className="text-sm font-semibold text-neutral-200">Timeline</h2>
         <div className="text-xs text-neutral-500">
           {selectedKeyframeIds.length > 0 &&
@@ -452,9 +452,9 @@ export function TimelineTrack() {
         </div>
       </div>
 
-      <div className="flex h-80">
+      <div className="flex flex-1 min-h-0">
         {/* Left sidebar - Object/Property labels */}
-        <div className="w-48 flex-shrink-0 border-r border-neutral-800 overflow-y-auto bg-neutral-900/40">
+        <div className="w-48 flex-shrink-0 border-r border-neutral-800 overflow-y-auto bg-neutral-900/40 h-full">
           {/* Spacer for ruler */}
           <div className="h-8 border-b border-neutral-800" />
           
@@ -482,7 +482,7 @@ export function TimelineTrack() {
         {/* Right - Timeline area */}
         <div
           ref={timelineAreaRef}
-          className="flex-1 relative overflow-x-auto overflow-y-auto"
+          className="flex-1 relative overflow-x-auto overflow-y-auto h-full"
         >
           {/* Timeline content with dynamic width */}
           <div

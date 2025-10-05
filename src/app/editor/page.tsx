@@ -22,7 +22,8 @@ function EditorContent() {
   useAudioPlayback();
 
   // Project management
-  const { currentProjectMetadata, saveProject, exportProject } = useProjectManager();
+  const { currentProjectMetadata, saveProject, exportProject } =
+    useProjectManager();
 
   // Export dialog state
   const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
@@ -39,7 +40,7 @@ function EditorContent() {
   };
 
   return (
-    <div className="h-screen w-screen bg-neutral-950 text-neutral-50 overflow-hidden flex flex-col p-4 gap-4">
+    <div className="h-screen w-screen bg-neutral-950 text-neutral-50 overflow-hidden flex flex-col px-2 gap-2">
       {/* Top bar - Compose */}
       <div className="flex-shrink-0">
         <ComposeBar
@@ -50,19 +51,21 @@ function EditorContent() {
       </div>
 
       {/* Main content area */}
-      <div className="flex-1 flex gap-4 min-h-0">
+      <div className="flex-1 flex gap-2 min-h-0">
         {/* Left sidebar - Scene tree */}
         <div className="w-64 flex-shrink-0">
           <SceneTree />
         </div>
 
         {/* Center - Viewport */}
-        <div className="flex-1 min-w-0">
-          <Viewport
-            onCanvasReady={(canvas: HTMLCanvasElement) => {
-              canvasRef.current = canvas;
-            }}
-          />
+        <div className="flex-1 min-w-0 min-h-0 flex flex-col">
+          <div className="flex-1 min-h-0">
+            <Viewport
+              onCanvasReady={(canvas: HTMLCanvasElement) => {
+                canvasRef.current = canvas;
+              }}
+            />
+          </div>
         </div>
 
         {/* Right sidebar - Inspector */}
@@ -72,10 +75,15 @@ function EditorContent() {
       </div>
 
       {/* Bottom area - Timeline */}
-      <div className="flex-shrink-0 flex gap-4">
-        <div className="flex-1 space-y-3">
-          <TimelineControls />
-          <TimelineTrack />
+      {/* Give the timeline a fixed-ish height on desktop (lg = 1024px) so the viewport can grow vertically */}
+  <div className="flex-none flex gap-0 h-60 lg:h-60 xl:h-80">
+        <div className="flex-1 flex flex-col gap-0">
+          <div className="flex-shrink-0">
+            <TimelineControls />
+          </div>
+          <div className="flex-1 min-h-0">
+            <TimelineTrack />
+          </div>
         </div>
         <EasingEditor />
       </div>
