@@ -13,12 +13,32 @@ export type Transform = {
   scale: Vector3;
 };
 
+/**
+ * Material properties for physical-based rendering
+ * Uses MeshPhysicalMaterial for advanced effects
+ */
 export type Material = {
   color: Color;
   roughness: number;
   metalness: number;
   emissiveColor: Color;
   emissiveIntensity: number;
+  /** Opacity level (0-1). Values < 1 automatically enable transparency */
+  opacity: number;
+  /** Enable transparency rendering */
+  transparent: boolean;
+  /** Light transmission through material (0-1). Used for glass/refractive materials */
+  transmission: number;
+  /** Thickness for volumetric effects with transmission */
+  thickness: number;
+  /** Index of Refraction (1-2.5). Glass is ~1.5, Diamond is ~2.4 */
+  ior: number;
+  /** Clear coating layer intensity (0-1). Used for car paint, varnish effects */
+  clearcoat: number;
+  /** Roughness of the clearcoat layer (0-1) */
+  clearcoatRoughness: number;
+  /** Use flat shading instead of smooth shading */
+  flatShading: boolean;
 };
 
 export type PrimitiveType = 
@@ -151,6 +171,8 @@ export type GLBObject = BaseObject & {
   url: string; // File URL or data URL
   availableAnimations: string[]; // List of animation names in the GLB
   activeAnimation: string | null; // Currently selected animation
+  material: Material; // Material override settings
+  overrideMaterial: boolean; // Whether to override GLB materials
 };
 
 export type SceneObject =

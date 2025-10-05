@@ -127,6 +127,45 @@ function GLBContent({ object }: GLBRendererProps) {
     }
   }, [object.transform]);
 
+  // Apply material override
+  useEffect(() => {
+    if (!clonedScene) return;
+
+    if (object.overrideMaterial) {
+      // Create the override material
+      const overrideMat = new THREE.MeshPhysicalMaterial({
+        color: object.material.color,
+        roughness: object.material.roughness,
+        metalness: object.material.metalness,
+        emissive: object.material.emissiveColor,
+        emissiveIntensity: object.material.emissiveIntensity,
+        opacity: object.material.opacity,
+        transparent: object.material.transparent || object.material.opacity < 1,
+        transmission: object.material.transmission,
+        thickness: object.material.thickness,
+        ior: object.material.ior,
+        clearcoat: object.material.clearcoat,
+        clearcoatRoughness: object.material.clearcoatRoughness,
+        flatShading: object.material.flatShading,
+      });
+
+      // Apply to all meshes in the scene
+      clonedScene.traverse((child) => {
+        if (child instanceof THREE.Mesh) {
+          child.material = overrideMat;
+        }
+      });
+
+      return () => {
+        overrideMat.dispose();
+      };
+    }
+  }, [
+    clonedScene,
+    object.overrideMaterial,
+    object.material,
+  ]);
+
   if (!clonedScene) {
     return null;
   }

@@ -6,6 +6,7 @@ import { useRef } from "react";
 import { currentTimeAtom } from "@/features/audio/state";
 import { addKeyframeAtom, updateObjectAtom } from "@/features/scene/state";
 import type { GLBObject } from "@/features/scene/types";
+import { MaterialSection } from "./material-section";
 import { TransformSection } from "./transform-section";
 
 type GLBInspectorProps = {
@@ -123,6 +124,33 @@ export function GLBInspector({ object }: GLBInspectorProps) {
           <p className="text-xs text-neutral-500">
             No animations found in this model
           </p>
+        )}
+      </div>
+
+      {/* Material Override Section */}
+      <div className="space-y-4">
+        <h3 className="text-sm font-semibold text-neutral-300 border-b border-neutral-800 pb-2">
+          Material Override
+        </h3>
+
+        <div className="flex items-center gap-2 p-3 rounded-lg bg-neutral-800/30">
+          <span className="text-xs text-neutral-400 flex-1">
+            Override GLB Materials
+          </span>
+          <input
+            type="checkbox"
+            checked={object.overrideMaterial}
+            onChange={(e) =>
+              updateObject(object.id, {
+                overrideMaterial: e.target.checked,
+              })
+            }
+            className="h-4 w-4 rounded cursor-pointer"
+          />
+        </div>
+
+        {object.overrideMaterial && (
+          <MaterialSection objectId={object.id} material={object.material} />
         )}
       </div>
     </div>

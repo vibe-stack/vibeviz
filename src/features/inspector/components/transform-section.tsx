@@ -25,12 +25,13 @@ export function TransformSection({
     component: "x" | "y" | "z",
     value: number,
   ) => {
+    const adjustedValue = axis === "rotation" ? value * (Math.PI / 180) : value;
     updateObject(objectId, {
       transform: {
         ...transform,
         [axis]: {
           ...transform[axis],
-          [component]: value,
+          [component]: adjustedValue,
         },
       },
     });
@@ -58,7 +59,11 @@ export function TransformSection({
             </span>
             <div className="flex items-center gap-1">
               <DragInput
-                value={transform[axis][component]}
+                value={
+                  axis === "rotation"
+                    ? transform[axis][component] * (180 / Math.PI)
+                    : transform[axis][component]
+                }
                 onChange={(v) => handleTransformChange(axis, component, v)}
                 step={0.1}
                 precision={2}

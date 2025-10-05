@@ -17,12 +17,31 @@ export const defaultTransform = (): Transform => ({
   scale: { x: 1, y: 1, z: 1 },
 });
 
+/**
+ * Default material properties
+ * 
+ * Common material presets:
+ * - Glass: transmission=1, roughness=0, thickness=0.5, ior=1.5, metalness=0
+ * - Frosted Glass: transmission=1, roughness=0.1-0.3, thickness=0.5, ior=1.5
+ * - Diamond: transmission=1, roughness=0, ior=2.4, clearcoat=1
+ * - Plastic: roughness=0.5, metalness=0, clearcoat=0.5
+ * - Metal: metalness=1, roughness=0.2-0.4
+ * - Transparent: opacity=0.5, transparent=true
+ */
 export const defaultMaterial = (): Material => ({
   color: "#a855f7",
   roughness: 0.5,
   metalness: 0.5,
   emissiveColor: "#000000",
   emissiveIntensity: 0,
+  opacity: 1,
+  transparent: false,
+  transmission: 0,
+  thickness: 0.5,
+  ior: 1.5,
+  clearcoat: 0,
+  clearcoatRoughness: 0,
+  flatShading: false,
 });
 
 export const createPrimitive = (

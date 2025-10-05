@@ -1,5 +1,5 @@
 import { nanoid } from "nanoid";
-import { defaultTransform } from "../defaults";
+import { defaultMaterial, defaultTransform } from "../defaults";
 import type { GLBObject } from "../types";
 
 export function createGLB(name?: string): GLBObject {
@@ -12,5 +12,7 @@ export function createGLB(name?: string): GLBObject {
     url: "",
     availableAnimations: [],
     activeAnimation: null,
+    material: defaultMaterial(),
+    overrideMaterial: false,
   };
 }
