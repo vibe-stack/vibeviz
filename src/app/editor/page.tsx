@@ -76,12 +76,12 @@ function EditorContent() {
 
       {/* Bottom area - Timeline */}
       {/* Give the timeline a fixed-ish height on desktop (lg = 1024px) so the viewport can grow vertically */}
-  <div className="flex-none flex gap-0 h-60 lg:h-60 xl:h-80">
-        <div className="flex-1 flex flex-col gap-0">
+      <div className="flex-none flex gap-0 h-60 lg:h-60 xl:h-80">
+        <div className="flex-1 min-w-0 flex flex-col gap-0">
           <div className="flex-shrink-0">
             <TimelineControls />
           </div>
-          <div className="flex-1 min-h-0">
+          <div className="flex-1 min-h-0 w-full max-w-full overflow-x-auto">
             <TimelineTrack />
           </div>
         </div>
