@@ -15,7 +15,7 @@ type GLBRendererProps = {
 };
 
 // Inner component that handles the actual GLB loading
-function GLBContent({ object, isSelected }: GLBRendererProps) {
+function GLBContent({ object }: GLBRendererProps) {
   const groupRef = useRef<Group>(null);
   const updateObject = useSetAtom(updateObjectAtom);
   const currentAnimationRef = useRef<string | null>(null);

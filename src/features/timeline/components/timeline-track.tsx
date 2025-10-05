@@ -327,15 +327,12 @@ export function TimelineTrack() {
             hasChildren && togglePropertyGroup(objectId, node.path)
           }
         >
-          {hasChildren && (
-            <>
-              {isCollapsed ? (
-                <ChevronRight className="w-3 h-3 text-neutral-500" />
-              ) : (
-                <ChevronDown className="w-3 h-3 text-neutral-500" />
-              )}
-            </>
-          )}
+          {hasChildren &&
+            (isCollapsed ? (
+              <ChevronRight className="w-3 h-3 text-neutral-500" />
+            ) : (
+              <ChevronDown className="w-3 h-3 text-neutral-500" />
+            ))}
           <span className="text-[10px] text-neutral-400 select-none">
             {node.label}
           </span>
