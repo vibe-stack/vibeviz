@@ -10,7 +10,10 @@ export interface ExportSettings {
   quality: Quality;
 }
 
-export const RESOLUTION_MAP: Record<Resolution, { width: number; height: number }> = {
+export const RESOLUTION_MAP: Record<
+  Resolution,
+  { width: number; height: number }
+> = {
   "720p": { width: 1280, height: 720 },
   "1080p": { width: 1920, height: 1080 },
   "1440p": { width: 2560, height: 1440 },
@@ -24,7 +27,12 @@ export const DEFAULT_EXPORT_SETTINGS: ExportSettings = {
   quality: 100,
 };
 
-export type ExportState = "idle" | "rendering" | "encoding" | "complete" | "error";
+export type ExportState =
+  | "idle"
+  | "rendering"
+  | "encoding"
+  | "complete"
+  | "error";
 
 export interface ExportProgress {
   state: ExportState;
@@ -32,4 +40,12 @@ export interface ExportProgress {
   totalFrames: number;
   progress: number; // 0-100
   error?: string;
+}
+
+export interface ExportAudioData {
+  frameRate: number;
+  totalFrames: number;
+  duration: number;
+  binCount: number;
+  data: Float32Array;
 }

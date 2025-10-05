@@ -1,22 +1,22 @@
 "use client";
 
 import { useAtomValue } from "jotai";
-import { selectedObjectIdsAtom } from "@/features/scene/state";
-import type { SceneObject } from "@/features/scene/types";
-import {
-  CameraRenderer,
-  LightRenderer,
-  PrimitiveRenderer,
-  ShaderRenderer,
-  WaveformInstancerRenderer,
-  WaveformLinesRenderer,
-  GLBRenderer,
-} from "./index";
 import {
   AudioParticleRenderer,
   DynamicParticleRenderer,
   ForceFieldRenderer,
 } from "@/features/particles/components";
+import { selectedObjectIdsAtom } from "@/features/scene/state";
+import type { SceneObject } from "@/features/scene/types";
+import {
+  CameraRenderer,
+  GLBRenderer,
+  LightRenderer,
+  PrimitiveRenderer,
+  ShaderRenderer,
+  WaveformInstancerRenderer,
+  WaveformLinesRenderer,
+} from "./index";
 
 type SceneRendererProps = {
   objects: SceneObject[];
@@ -101,11 +101,7 @@ export function SceneRenderer({ objects }: SceneRendererProps) {
             );
           case "glb":
             return (
-              <GLBRenderer
-                key={obj.id}
-                object={obj}
-                isSelected={isSelected}
-              />
+              <GLBRenderer key={obj.id} object={obj} isSelected={isSelected} />
             );
           default:
             return null;

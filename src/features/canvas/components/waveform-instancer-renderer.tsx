@@ -6,8 +6,13 @@ import { useEffect, useMemo, useRef } from "react";
 import type { Group, InstancedMesh, MeshStandardMaterial } from "three";
 import * as THREE from "three";
 import * as Tone from "tone";
-import { audioPlayerAtom, isPlayingAtom } from "@/features/audio/state";
-import { isExportingAtom } from "@/features/export/state";
+import {
+  audioPlayerAtom,
+  currentTimeAtom,
+  isPlayingAtom,
+} from "@/features/audio/state";
+import { getInterpolatedAudioFrame } from "@/features/export/audio-analysis";
+import { exportAudioDataAtom, isExportingAtom } from "@/features/export/state";
 import { sceneObjectsAtom } from "@/features/scene/state";
 import type { WaveformInstancerObject } from "@/features/scene/types";
 
@@ -26,8 +31,11 @@ export function WaveformInstancerRenderer({
   const audioPlayer = useAtomValue(audioPlayerAtom);
   const isPlaying = useAtomValue(isPlayingAtom);
   const isExporting = useAtomValue(isExportingAtom);
+  const currentTime = useAtomValue(currentTimeAtom);
+  const exportAudioData = useAtomValue(exportAudioDataAtom);
   const analyzerRef = useRef<Tone.Analyser | null>(null);
   const rawValuesRef = useRef<Float32Array | null>(null);
+  const exportFrameRef = useRef<Float32Array | null>(null);
 
   // Pre-allocated objects for matrix calculations
   const matrices = useMemo(() => new THREE.Matrix4(), []);
@@ -71,21 +79,26 @@ export function WaveformInstancerRenderer({
   }, [object.transform]);
 
   useEffect(() => {
-    // Connect analyzer to shared audio player
-    if (audioPlayer && !analyzerRef.current) {
-      // FFT size must be power of 2 - use FFT for frequency analysis
+    rawValuesRef.current = new Float32Array(object.instanceCount);
+    return () => {
+      rawValuesRef.current = null;
+    };
+  }, [object.instanceCount]);
+
+  useEffect(() => {
+    const shouldUseAnalyzer = !isExporting && audioPlayer;
+
+    if (!shouldUseAnalyzer && analyzerRef.current) {
+      analyzerRef.current.dispose();
+      analyzerRef.current = null;
+    }
+
+    if (shouldUseAnalyzer && !analyzerRef.current) {
       const fftSize =
         2 ** Math.ceil(Math.log2(Math.min(object.instanceCount, 2048)));
-
-      // Use 'fft' type for frequency data (shows highs/lows across spectrum)
       const analyzer = new Tone.Analyser("fft", fftSize);
-
-      // Connect to the existing player
-      audioPlayer.connect(analyzer);
-
+      audioPlayer!.connect(analyzer);
       analyzerRef.current = analyzer;
-      rawValuesRef.current = new Float32Array(object.instanceCount);
-
       console.log("FFT analyzer connected to main player with size:", fftSize);
     }
 
@@ -93,10 +106,9 @@ export function WaveformInstancerRenderer({
       if (analyzerRef.current) {
         analyzerRef.current.dispose();
         analyzerRef.current = null;
-        rawValuesRef.current = null;
       }
     };
-  }, [audioPlayer, object.instanceCount]);
+  }, [audioPlayer, isExporting, object.instanceCount]);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies(tempMatrix): suppress dependency analysis warning
   // biome-ignore lint/correctness/useExhaustiveDependencies(tempMatrix.makeBasis): suppress dependency analysis warning
@@ -199,16 +211,36 @@ export function WaveformInstancerRenderer({
     const analyzer = analyzerRef.current;
     const rawValues = rawValuesRef.current;
     const material = materialRef.current;
-    if (!instanced || !analyzer || !rawValues || (!isPlaying && !isExporting)) return;
 
-    const values = analyzer.getValue() as Float32Array;
+    if (!instanced || !rawValues || (!isPlaying && !isExporting)) return;
+
+    const useExportData = isExporting && exportAudioData;
+    let values: Float32Array | null = null;
+    let valuesLength = 0;
+
+    if (useExportData) {
+      exportFrameRef.current = getInterpolatedAudioFrame(
+        exportAudioData!,
+        currentTime,
+        exportFrameRef.current ?? undefined,
+      );
+      values = exportFrameRef.current;
+      valuesLength = values.length;
+    } else if (analyzer) {
+      values = analyzer.getValue() as Float32Array;
+      valuesLength = values.length;
+    }
+
+    if (!values || valuesLength === 0) {
+      return;
+    }
     const startDeg = object.arcStartDegrees ?? 0;
     const endDeg = object.arcEndDegrees ?? 360;
     const arcRange = endDeg - startDeg;
 
     // Calculate frequency range indices
-    const freqStart = Math.floor(object.freqRangeStart * values.length);
-    const freqEnd = Math.floor(object.freqRangeEnd * values.length);
+    const freqStart = Math.floor(object.freqRangeStart * valuesLength);
+    const freqEnd = Math.floor(object.freqRangeEnd * valuesLength);
     const freqRange = freqEnd - freqStart;
 
     // Pre-calculate common values
@@ -267,7 +299,8 @@ export function WaveformInstancerRenderer({
       // Map instance index to analyzer frequency bins within the specified range
       const dataIndex =
         freqStart + Math.floor(i * instanceCountInv * freqRange);
-      const rawValue = values[Math.min(dataIndex, values.length - 1)];
+      const safeIndex = Math.min(dataIndex, valuesLength - 1);
+      const rawValue = values[safeIndex];
 
       // FFT returns decibel values (typically -100 to 0)
       // Convert to 0-1 range for visualization

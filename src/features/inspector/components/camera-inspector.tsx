@@ -25,10 +25,7 @@ export function CameraInspector({ object }: CameraInspectorProps) {
     addKeyframe(object.id, "isActive", currentTime, object.isActive);
   };
 
-  const handleTargetChange = (
-    component: "x" | "y" | "z",
-    value: number,
-  ) => {
+  const handleTargetChange = (component: "x" | "y" | "z", value: number) => {
     updateObject(object.id, {
       target: {
         ...object.target,

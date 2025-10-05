@@ -1,6 +1,6 @@
 import { nanoid } from "nanoid";
-import type { GLBObject } from "../types";
 import { defaultTransform } from "../defaults";
+import type { GLBObject } from "../types";
 
 export function createGLB(name?: string): GLBObject {
   return {

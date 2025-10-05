@@ -1,6 +1,6 @@
 "use client";
 
-import { openDB, type IDBPDatabase } from "idb";
+import { type IDBPDatabase, openDB } from "idb";
 
 const DB_NAME = "vibeviz-projects";
 const DB_VERSION = 1;
@@ -24,7 +24,9 @@ function getDB(): Promise<IDBPDatabase> {
     dbPromise = openDB(DB_NAME, DB_VERSION, {
       upgrade(database) {
         if (!database.objectStoreNames.contains(STORE_ASSETS)) {
-          const store = database.createObjectStore(STORE_ASSETS, { keyPath: "key" });
+          const store = database.createObjectStore(STORE_ASSETS, {
+            keyPath: "key",
+          });
           store.createIndex("projectId", "projectId");
         }
       },
@@ -61,7 +63,9 @@ export async function storeProjectAsset(
   return { assetKey: key, filename, mimeType: record.mimeType };
 }
 
-export async function getProjectAsset(assetKey: string): Promise<AssetRecord | null> {
+export async function getProjectAsset(
+  assetKey: string,
+): Promise<AssetRecord | null> {
   const db = await getDB();
   const record = await db.get(STORE_ASSETS, assetKey);
   return (record as AssetRecord | undefined) ?? null;

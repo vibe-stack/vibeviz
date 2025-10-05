@@ -77,10 +77,10 @@ export function useKeyframeApplicator() {
       } else {
         // Calculate linear interpolation factor
         const t = (currentTime - prevKf.time) / (nextKf.time - prevKf.time);
-        
+
         // Apply easing function from the next keyframe
         const easedT = applyEasing(t, nextKf.ease);
-        
+
         value = interpolateValue(prevKf.value, nextKf.value, easedT, property);
       }
 
@@ -148,7 +148,11 @@ function interpolateValue(a: any, b: any, t: number, property?: string): any {
   }
   // Check if it's a color string (hex or other CSS color)
   // Skip color interpolation for non-color string properties like activeAnimation
-  if (typeof a === "string" && typeof b === "string" && property !== "activeAnimation") {
+  if (
+    typeof a === "string" &&
+    typeof b === "string" &&
+    property !== "activeAnimation"
+  ) {
     try {
       const colorA = new Color(a);
       const colorB = new Color(b);

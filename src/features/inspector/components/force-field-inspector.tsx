@@ -2,8 +2,8 @@
 
 import { useSetAtom } from "jotai";
 import { DragInput } from "@/components/ui/drag-input";
-import { updateObjectAtom } from "@/features/scene/state";
 import type { ForceFieldObject } from "@/features/particles/types";
+import { updateObjectAtom } from "@/features/scene/state";
 import { TransformSection } from "./transform-section";
 
 type ForceFieldInspectorProps = {

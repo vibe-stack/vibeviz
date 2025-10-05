@@ -6,8 +6,13 @@ import { useEffect, useMemo, useRef } from "react";
 import type { Group, InstancedMesh, MeshStandardMaterial } from "three";
 import * as THREE from "three";
 import * as Tone from "tone";
-import { audioPlayerAtom, isPlayingAtom } from "@/features/audio/state";
-import { isExportingAtom } from "@/features/export/state";
+import {
+  audioPlayerAtom,
+  currentTimeAtom,
+  isPlayingAtom,
+} from "@/features/audio/state";
+import { getInterpolatedAudioFrame } from "@/features/export/audio-analysis";
+import { exportAudioDataAtom, isExportingAtom } from "@/features/export/state";
 import { sceneObjectsAtom } from "@/features/scene/state";
 import type { AudioParticleObject } from "../types";
 
@@ -27,8 +32,11 @@ export function AudioParticleRenderer({
   const audioPlayer = useAtomValue(audioPlayerAtom);
   const isPlaying = useAtomValue(isPlayingAtom);
   const isExporting = useAtomValue(isExportingAtom);
+  const currentTime = useAtomValue(currentTimeAtom);
+  const exportAudioData = useAtomValue(exportAudioDataAtom);
   const analyzerRef = useRef<Tone.Analyser | null>(null);
   const rawValuesRef = useRef<Float32Array | null>(null);
+  const exportFrameRef = useRef<Float32Array | null>(null);
 
   const matrices = useMemo(() => new THREE.Matrix4(), []);
   const position = useMemo(() => new THREE.Vector3(), []);
@@ -62,24 +70,38 @@ export function AudioParticleRenderer({
 
   // Setup audio analyzer
   useEffect(() => {
-    if (audioPlayer && !analyzerRef.current) {
+    const fftSize =
+      2 ** Math.ceil(Math.log2(Math.min(object.particleCount, 2048)));
+    rawValuesRef.current = new Float32Array(fftSize);
+    return () => {
+      rawValuesRef.current = null;
+    };
+  }, [object.particleCount]);
+
+  useEffect(() => {
+    const shouldUseAnalyzer = !isExporting && audioPlayer;
+
+    if (!shouldUseAnalyzer && analyzerRef.current) {
+      analyzerRef.current.dispose();
+      analyzerRef.current = null;
+    }
+
+    if (shouldUseAnalyzer && !analyzerRef.current) {
       const fftSize =
         2 ** Math.ceil(Math.log2(Math.min(object.particleCount, 2048)));
       const analyzer = new Tone.Analyser("fft", fftSize);
       analyzer.smoothing = object.smoothing;
-      audioPlayer.connect(analyzer);
+      audioPlayer!.connect(analyzer);
       analyzerRef.current = analyzer;
-      rawValuesRef.current = new Float32Array(fftSize);
     }
 
     return () => {
       if (analyzerRef.current) {
         analyzerRef.current.dispose();
         analyzerRef.current = null;
-        rawValuesRef.current = null;
       }
     };
-  }, [audioPlayer, object.particleCount, object.smoothing]);
+  }, [audioPlayer, isExporting, object.particleCount, object.smoothing]);
 
   // Get target geometry
   const geometry = useMemo(() => {
@@ -150,20 +172,38 @@ export function AudioParticleRenderer({
 
     // Get audio data
     let audioValues: number[] = [];
-    if (analyzerRef.current && rawValuesRef.current && (isPlaying || isExporting)) {
-      const values = analyzerRef.current.getValue() as Float32Array;
-      rawValuesRef.current.set(values);
+    if (rawValuesRef.current && (isPlaying || isExporting)) {
+      const useExportData = isExporting && exportAudioData;
+      let values: Float32Array | null = null;
 
-      const startIdx = Math.floor(object.freqRangeStart * values.length);
-      const endIdx = Math.floor(object.freqRangeEnd * values.length);
-      const rangeSize = endIdx - startIdx;
+      if (useExportData) {
+        exportFrameRef.current = getInterpolatedAudioFrame(
+          exportAudioData!,
+          currentTime,
+          exportFrameRef.current ?? undefined,
+        );
+        values = exportFrameRef.current;
+      } else if (analyzerRef.current) {
+        values = analyzerRef.current.getValue() as Float32Array;
+        rawValuesRef.current.set(values);
+      }
 
-      for (let i = 0; i < object.particleCount; i++) {
-        const freqIdx = startIdx + Math.floor((i / object.particleCount) * rangeSize);
-        const dbValue = rawValuesRef.current[freqIdx] || -100;
-        const normalizedValue = Math.max(0, (dbValue + 100) / 100);
-        const threshold = normalizedValue > object.audioThreshold ? normalizedValue : 0;
-        audioValues[i] = threshold * object.audioGain;
+      if (values) {
+        const valuesLength = values.length;
+        const startIdx = Math.floor(object.freqRangeStart * valuesLength);
+        const endIdx = Math.floor(object.freqRangeEnd * valuesLength);
+        const rangeSize = endIdx - startIdx;
+
+        for (let i = 0; i < object.particleCount; i++) {
+          const freqIdx =
+            startIdx + Math.floor((i / object.particleCount) * rangeSize);
+          const safeIdx = Math.min(Math.max(freqIdx, 0), valuesLength - 1);
+          const dbValue = values[safeIdx] ?? -100;
+          const normalizedValue = Math.max(0, (dbValue + 100) / 100);
+          const threshold =
+            normalizedValue > object.audioThreshold ? normalizedValue : 0;
+          audioValues[i] = threshold * object.audioGain;
+        }
       }
     } else {
       audioValues = new Array(object.particleCount).fill(0);
@@ -172,10 +212,15 @@ export function AudioParticleRenderer({
     // Update particle instances
     for (let i = 0; i < object.particleCount; i++) {
       const audioValue = audioValues[i] || 0;
-      const particlePos = getPathPosition(i, object.particleCount, time, audioValue);
+      const particlePos = getPathPosition(
+        i,
+        object.particleCount,
+        time,
+        audioValue,
+      );
 
       position.copy(particlePos);
-      
+
       const particleScale = object.baseSize + audioValue * object.dynamicSize;
       scale.set(particleScale, particleScale, particleScale);
 
@@ -186,10 +231,16 @@ export function AudioParticleRenderer({
     instancedMesh.instanceMatrix.needsUpdate = true;
 
     // Update material emissive based on audio
-    if (materialRef.current && targetPrimitive && targetPrimitive.type === "primitive") {
-      const avgAudio = audioValues.reduce((a, b) => a + b, 0) / audioValues.length;
-      const emissiveIntensity = 
-        targetPrimitive.material.emissiveIntensity + avgAudio * object.emissiveBoost;
+    if (
+      materialRef.current &&
+      targetPrimitive &&
+      targetPrimitive.type === "primitive"
+    ) {
+      const avgAudio =
+        audioValues.reduce((a, b) => a + b, 0) / audioValues.length;
+      const emissiveIntensity =
+        targetPrimitive.material.emissiveIntensity +
+        avgAudio * object.emissiveBoost;
       materialRef.current.emissiveIntensity = emissiveIntensity;
     }
   });
@@ -215,7 +266,15 @@ export function AudioParticleRenderer({
       </instancedMesh>
       {isSelected && (
         <lineSegments>
-          <edgesGeometry args={[new THREE.BoxGeometry(object.pathScale * 2, object.pathScale * 2, object.pathScale * 2)]} />
+          <edgesGeometry
+            args={[
+              new THREE.BoxGeometry(
+                object.pathScale * 2,
+                object.pathScale * 2,
+                object.pathScale * 2,
+              ),
+            ]}
+          />
           <lineBasicMaterial color="#10b981" />
         </lineSegments>
       )}

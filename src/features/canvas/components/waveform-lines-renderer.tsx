@@ -25,7 +25,7 @@ export function WaveformLinesRenderer({ object }: WaveformLinesRendererProps) {
   const isExporting = useAtomValue(isExportingAtom);
 
   // Use custom hook for audio analysis (based on lineSegments, not lineAmount)
-  const { analyzer, rawValues, smoothedValues } = useWaveformAnalyzer(
+  const { getFrequencyData, rawValues, smoothedValues } = useWaveformAnalyzer(
     object.lineSegments,
   );
 
@@ -271,7 +271,6 @@ export function WaveformLinesRenderer({ object }: WaveformLinesRendererProps) {
   useFrame(() => {
     const { geometries, materials } = linesDataRef.current;
     if (
-      !analyzer ||
       !rawValues ||
       !smoothedValues ||
       (!isPlaying && !isExporting) ||
@@ -279,13 +278,17 @@ export function WaveformLinesRenderer({ object }: WaveformLinesRendererProps) {
     )
       return;
 
-    const values = analyzer.getValue() as Float32Array;
+    const values = getFrequencyData();
+    if (!values || values.length === 0) {
+      return;
+    }
+    const valuesLength = values.length;
     const cache = cachedCalcs.current;
     const refs = reusableRefs.current;
 
     // Update frequency range cache (changes rarely)
-    cache.freqStart = Math.floor(object.freqRangeStart * values.length);
-    cache.freqEnd = Math.floor(object.freqRangeEnd * values.length);
+    cache.freqStart = Math.floor(object.freqRangeStart * valuesLength);
+    cache.freqEnd = Math.floor(object.freqRangeEnd * valuesLength);
     cache.freqRange = Math.max(1, cache.freqEnd - cache.freqStart);
 
     const temporalSmoothing = cache.temporalSmoothing;
@@ -296,7 +299,7 @@ export function WaveformLinesRenderer({ object }: WaveformLinesRendererProps) {
       // Extract and process audio data
       const dataIndex =
         cache.freqStart + Math.floor(i * cache.segmentInv * cache.freqRange);
-      const rawValue = values[Math.min(dataIndex, values.length - 1)];
+      const rawValue = values[Math.min(dataIndex, valuesLength - 1)];
       let normalizedAmplitude = Math.max(0, (rawValue + 100) / 100);
       normalizedAmplitude =
         Math.max(0, normalizedAmplitude - object.audioThreshold) *

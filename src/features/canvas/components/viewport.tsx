@@ -5,7 +5,10 @@ import { Canvas, useThree } from "@react-three/fiber";
 import { useAtomValue, useSetAtom } from "jotai";
 import { useEffect, useMemo, useState } from "react";
 import * as THREE from "three/webgpu";
-import { sceneObjectsAtom, selectedObjectIdsAtom } from "@/features/scene/state";
+import {
+  sceneObjectsAtom,
+  selectedObjectIdsAtom,
+} from "@/features/scene/state";
 import type { CameraObject, PostprocessorObject } from "@/features/scene/types";
 import { PostprocessingRenderer, SceneRenderer } from "./index";
 
@@ -13,7 +16,11 @@ interface ViewportProps {
   onCanvasReady?: (canvas: HTMLCanvasElement) => void;
 }
 
-function CanvasCapture({ onCanvasReady }: { onCanvasReady?: (canvas: HTMLCanvasElement) => void }) {
+function CanvasCapture({
+  onCanvasReady,
+}: {
+  onCanvasReady?: (canvas: HTMLCanvasElement) => void;
+}) {
   const { gl } = useThree();
 
   useEffect(() => {

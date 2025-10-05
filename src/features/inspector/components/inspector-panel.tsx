@@ -3,17 +3,17 @@
 import { useAtomValue } from "jotai";
 import { selectedObjectsAtom } from "@/features/scene/state";
 import {
+  AudioParticleInspector,
   CameraInspector,
+  DynamicParticleInspector,
+  ForceFieldInspector,
+  GLBInspector,
   LightInspector,
   PostprocessorInspector,
   PrimitiveInspector,
   ShaderInspector,
   WaveformInstancerInspector,
   WaveformLinesInspector,
-  AudioParticleInspector,
-  DynamicParticleInspector,
-  ForceFieldInspector,
-  GLBInspector,
 } from "./index";
 
 export function InspectorPanel() {

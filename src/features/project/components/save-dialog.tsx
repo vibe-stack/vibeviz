@@ -1,7 +1,7 @@
 "use client";
 
 import { Save, X } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 
 interface SaveDialogProps {
   isOpen: boolean;
@@ -17,7 +17,7 @@ export function SaveDialog({
   currentProjectName,
 }: SaveDialogProps) {
   const [projectName, setProjectName] = useState(
-    currentProjectName || "Untitled Project"
+    currentProjectName || "Untitled Project",
   );
 
   useEffect(() => {

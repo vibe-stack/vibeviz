@@ -1,14 +1,15 @@
-import {
-  Output,
-  Mp4OutputFormat,
-  StreamTarget,
-  CanvasSource,
-  AudioBufferSource,
-} from "mediabunny";
 import type { BufferTarget } from "mediabunny";
-import type { AudioClip } from "@/features/audio/types";
+import {
+  AudioBufferSource,
+  CanvasSource,
+  Mp4OutputFormat,
+  Output,
+  StreamTarget,
+} from "mediabunny";
 import * as Tone from "tone";
-import type { ExportSettings, ExportProgress } from "./types";
+import type { AudioClip } from "@/features/audio/types";
+import { generateExportAudioData } from "./audio-analysis";
+import type { ExportAudioData, ExportProgress, ExportSettings } from "./types";
 import { RESOLUTION_MAP } from "./types";
 
 export class ExportManager {
@@ -19,6 +20,8 @@ export class ExportManager {
   private aborted = false;
   private offscreenCanvas: HTMLCanvasElement | null = null;
   private offscreenContext: CanvasRenderingContext2D | null = null;
+  private onAudioDataChange: ((data: ExportAudioData | null) => void) | null =
+    null;
 
   constructor(onProgress?: (progress: ExportProgress) => void) {
     this.onProgress = onProgress || null;
@@ -34,9 +37,11 @@ export class ExportManager {
     audioPlayer: Tone.Player | null,
     onTimeUpdate: (time: number) => void,
     audioClip: AudioClip | null,
-    onAudioPlayerChange?: (player: Tone.Player | null) => void
+    onAudioPlayerChange?: (player: Tone.Player | null) => void,
+    onAudioDataChange?: (data: ExportAudioData | null) => void,
   ): Promise<Uint8Array | null> {
     this.aborted = false;
+    this.onAudioDataChange = onAudioDataChange ?? null;
 
     const framerate = settings.framerate;
     const totalFrames = Math.ceil(duration * framerate);
@@ -45,6 +50,7 @@ export class ExportManager {
     let tempPlayerCreated = false;
     let preparedAudioBuffer: AudioBuffer | null = null;
     let hasAudio = false;
+    let exportAudioData: ExportAudioData | null = null;
 
     try {
       // Update progress
@@ -57,23 +63,25 @@ export class ExportManager {
 
       // Get target resolution
       const targetResolution = RESOLUTION_MAP[settings.resolution];
-      
+
       // Calculate scaled dimensions maintaining aspect ratio
       const sourceAspect = canvas.width / canvas.height;
       const targetAspect = targetResolution.width / targetResolution.height;
-      
+
       let scaledWidth = targetResolution.width;
       let scaledHeight = targetResolution.height;
-      
+
       // Maintain aspect ratio - fit within target resolution
       if (sourceAspect > targetAspect) {
         // Source is wider - fit to width
         // Round to nearest even number (required for video codecs)
-        scaledHeight = Math.round(targetResolution.width / sourceAspect / 2) * 2;
+        scaledHeight =
+          Math.round(targetResolution.width / sourceAspect / 2) * 2;
       } else {
         // Source is taller - fit to height
         // Round to nearest even number (required for video codecs)
-        scaledWidth = Math.round(targetResolution.height * sourceAspect / 2) * 2;
+        scaledWidth =
+          Math.round((targetResolution.height * sourceAspect) / 2) * 2;
       }
 
       // Create offscreen canvas for scaling
@@ -90,7 +98,10 @@ export class ExportManager {
       }
 
       // Prepare audio data upfront (used for both visuals and final muxing)
-      preparedAudioBuffer = await this.prepareAudioBuffer(audioClip, audioPlayer);
+      preparedAudioBuffer = await this.prepareAudioBuffer(
+        audioClip,
+        audioPlayer,
+      );
 
       if (preparedAudioBuffer) {
         exportPlayer = new Tone.Player(preparedAudioBuffer);
@@ -99,6 +110,24 @@ export class ExportManager {
         exportPlayer.loop = false;
         tempPlayerCreated = true;
         hasAudio = true;
+
+        try {
+          exportAudioData = generateExportAudioData(
+            preparedAudioBuffer,
+            totalFrames,
+            framerate,
+          );
+          this.onAudioDataChange?.(exportAudioData);
+        } catch (analysisError) {
+          console.error(
+            "Failed to generate export audio analysis:",
+            analysisError,
+          );
+          exportAudioData = null;
+          this.onAudioDataChange?.(null);
+        }
+      } else {
+        this.onAudioDataChange?.(null);
       }
 
       // Check for File System Access API support
@@ -128,12 +157,14 @@ export class ExportManager {
         format: new Mp4OutputFormat({
           fastStart: "fragmented",
         }),
-        target: writableStream ? new StreamTarget(writableStream) : bufferTarget!,
+        target: writableStream
+          ? new StreamTarget(writableStream)
+          : bufferTarget!,
       });
 
       // Create video source from scaled canvas
       const bitrateBps = settings.bitrate * 1_000_000; // Convert Mbps to bps
-      
+
       this.videoSource = new CanvasSource(this.offscreenCanvas, {
         codec: "avc",
         bitrate: bitrateBps,
@@ -180,7 +211,7 @@ export class ExportManager {
         onTimeUpdate,
         settings.quality,
         exportPlayer,
-        hasAudio
+        hasAudio,
       );
 
       if (this.aborted) {
@@ -238,16 +269,19 @@ export class ExportManager {
         progress: 0,
         error: error instanceof Error ? error.message : "Unknown error",
       });
-      
+
       // Restore audio player
       if (onAudioPlayerChange) {
         onAudioPlayerChange(audioPlayer);
       }
-      
+
       throw error;
     } finally {
       if (tempPlayerCreated && exportPlayer) {
         exportPlayer.dispose();
+      }
+      if (this.onAudioDataChange) {
+        this.onAudioDataChange(null);
       }
       this.cleanup();
     }
@@ -298,7 +332,7 @@ export class ExportManager {
     onTimeUpdate: (time: number) => void,
     quality: number,
     audioPlayer: Tone.Player | null,
-    hasAudio: boolean
+    hasAudio: boolean,
   ): Promise<void> {
     const frameDuration = 1 / framerate;
 
@@ -308,7 +342,7 @@ export class ExportManager {
       }
 
       const videoTime = frameIndex * frameDuration;
-      
+
       if (videoTime >= duration) {
         break;
       }
@@ -343,7 +377,7 @@ export class ExportManager {
           0,
           0,
           this.offscreenCanvas.width,
-          this.offscreenCanvas.height
+          this.offscreenCanvas.height,
         );
       }
 
@@ -362,7 +396,7 @@ export class ExportManager {
       });
 
       if (quality < 100 && frameIndex % 10 === 0) {
-        await new Promise(resolve => setTimeout(resolve, 0));
+        await new Promise((resolve) => setTimeout(resolve, 0));
       }
     }
 

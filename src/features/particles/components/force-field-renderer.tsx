@@ -43,8 +43,7 @@ export function ForceFieldRenderer({
     return null;
   }
 
-  const color =
-    object.forceFieldType === "attractor" ? "#3b82f6" : "#ef4444";
+  const color = object.forceFieldType === "attractor" ? "#3b82f6" : "#ef4444";
   const selectedColor = isSelected ? "#10b981" : color;
 
   return (

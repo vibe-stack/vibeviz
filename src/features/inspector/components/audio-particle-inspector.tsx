@@ -2,8 +2,8 @@
 
 import { useAtomValue, useSetAtom } from "jotai";
 import { DragInput } from "@/components/ui/drag-input";
-import { sceneObjectsAtom, updateObjectAtom } from "@/features/scene/state";
 import type { AudioParticleObject } from "@/features/particles/types";
+import { sceneObjectsAtom, updateObjectAtom } from "@/features/scene/state";
 import { TransformSection } from "./transform-section";
 
 type AudioParticleInspectorProps = {
@@ -52,7 +52,11 @@ export function AudioParticleInspector({
             value={object.pathType}
             onChange={(e) =>
               updateObject(object.id, {
-                pathType: e.target.value as "orbit" | "wave" | "spiral" | "linear",
+                pathType: e.target.value as
+                  | "orbit"
+                  | "wave"
+                  | "spiral"
+                  | "linear",
               })
             }
             className="flex-1 px-2 py-1.5 text-xs bg-neutral-900 border border-neutral-700 rounded text-neutral-300"

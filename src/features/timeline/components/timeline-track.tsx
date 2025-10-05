@@ -143,7 +143,9 @@ export function TimelineTrack() {
 
       const rect = rulerRef.current.getBoundingClientRect();
       const x = e.clientX - rect.left;
-      const time = snapTime(pixelToTime(x, timelineAreaRef.current || undefined));
+      const time = snapTime(
+        pixelToTime(x, timelineAreaRef.current || undefined),
+      );
 
       setCurrentTime(Math.max(0, Math.min(duration, time)));
       setIsDraggingPlayhead(true);
@@ -181,26 +183,26 @@ export function TimelineTrack() {
   const handleKeyframeMouseDown = useCallback(
     (e: React.MouseEvent, keyframeIds: string[]) => {
       e.stopPropagation();
-      
+
       // Store start position
       mouseDownPosRef.current = { x: e.clientX, y: e.clientY };
       setDragStartX(e.clientX);
 
       // Store start times for potential drag
       const startTimes = new Map<string, number>();
-      
+
       const isDraggingSelected = keyframeIds.some((id) =>
         selectedKeyframeIds.includes(id),
       );
-      
+
       const idsToMove = isDraggingSelected ? selectedKeyframeIds : keyframeIds;
-      
+
       keyframes.forEach((kf) => {
         if (idsToMove.includes(kf.id)) {
           startTimes.set(kf.id, kf.time);
         }
       });
-      
+
       keyframeDragStartTimesRef.current = startTimes;
       setIsDraggingKeyframes(true);
     },
@@ -218,7 +220,7 @@ export function TimelineTrack() {
       } else if (isDraggingKeyframes) {
         const deltaX = e.clientX - dragStartX;
         const deltaY = Math.abs(e.clientY - mouseDownPosRef.current.y);
-        
+
         // Only start dragging if we've moved beyond threshold horizontally
         if (Math.abs(deltaX) > dragThreshold || deltaY > dragThreshold) {
           const deltaTime = deltaX / zoom;
@@ -247,11 +249,11 @@ export function TimelineTrack() {
       const deltaX = Math.abs(e.clientX - mouseDownPosRef.current.x);
       const deltaY = Math.abs(e.clientY - mouseDownPosRef.current.y);
       const wasActualDrag = deltaX > dragThreshold || deltaY > dragThreshold;
-      
+
       setIsDraggingPlayhead(false);
       setIsDraggingKeyframes(false);
       keyframeDragStartTimesRef.current.clear();
-      
+
       // If it was a drag (not a click), prevent the onClick from firing
       if (wasDragging && wasActualDrag) {
         // The click will still fire, but we can't prevent it here
@@ -321,7 +323,9 @@ export function TimelineTrack() {
         <div
           className="flex items-center gap-1 cursor-pointer hover:bg-neutral-800/30 w-full"
           style={{ paddingLeft: `${depth * 12 + 8}px` }}
-          onClick={() => hasChildren && togglePropertyGroup(objectId, node.path)}
+          onClick={() =>
+            hasChildren && togglePropertyGroup(objectId, node.path)
+          }
         >
           {hasChildren && (
             <>
@@ -457,7 +461,7 @@ export function TimelineTrack() {
         <div className="w-48 flex-shrink-0 border-r border-neutral-800 overflow-y-auto bg-neutral-900/40 h-full">
           {/* Spacer for ruler */}
           <div className="h-8 border-b border-neutral-800" />
-          
+
           {objects
             .filter((obj) => obj.type !== "postprocessor")
             .map((obj) => {
@@ -533,7 +537,9 @@ export function TimelineTrack() {
                       {/* Object spacer */}
                       <div className="h-8 bg-neutral-800/10" />
                       {/* Property rows (timeline - with keyframes) */}
-                      {tree.map((node) => renderPropertyNodeTimeline(node, obj.id))}
+                      {tree.map((node) =>
+                        renderPropertyNodeTimeline(node, obj.id),
+                      )}
                     </div>
                   );
                 })}

@@ -1,10 +1,10 @@
 "use client";
 
 import { useAtomValue, useSetAtom } from "jotai";
-import { Upload, Diamond } from "lucide-react";
+import { Diamond, Upload } from "lucide-react";
 import { useRef } from "react";
 import { currentTimeAtom } from "@/features/audio/state";
-import { updateObjectAtom, addKeyframeAtom } from "@/features/scene/state";
+import { addKeyframeAtom, updateObjectAtom } from "@/features/scene/state";
 import type { GLBObject } from "@/features/scene/types";
 import { TransformSection } from "./transform-section";
 
@@ -24,7 +24,7 @@ export function GLBInspector({ object }: GLBInspectorProps) {
 
     // Create a local URL for the file
     const url = URL.createObjectURL(file);
-    
+
     updateObject(object.id, {
       url,
       // Reset animations when loading a new file
@@ -81,9 +81,7 @@ export function GLBInspector({ object }: GLBInspectorProps) {
             {object.url ? "Change Model" : "Upload GLB File"}
           </button>
           {object.url && (
-            <p className="text-xs text-neutral-500 truncate">
-              Model loaded
-            </p>
+            <p className="text-xs text-neutral-500 truncate">Model loaded</p>
           )}
         </div>
 

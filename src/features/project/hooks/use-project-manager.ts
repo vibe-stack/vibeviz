@@ -1,32 +1,33 @@
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { nanoid } from "nanoid";
 import { useCallback } from "react";
-import { sceneObjectsAtom, keyframesAtom } from "@/features/scene/state";
 import { audioClipAtom } from "@/features/audio/state";
+import type { AudioClip } from "@/features/audio/types";
+import { keyframesAtom, sceneObjectsAtom } from "@/features/scene/state";
+import type { SceneObject } from "@/features/scene/types";
+import { currentProjectMetadataAtom, recentProjectsAtom } from "../state";
 import {
-  currentProjectMetadataAtom,
-  recentProjectsAtom,
-} from "../state";
-import {
-  saveProjectLocally,
-  exportProjectToZip,
-  importProjectFromZip,
-  getProjectMetadataList,
-  loadLocalProject,
-  deleteLocalProject,
-  generateThumbnail,
-  dataUrlToBlob,
-} from "../utils";
+  deleteProjectAssets,
+  getProjectAsset,
+  storeProjectAsset,
+} from "../storage";
 import type {
   ProjectData,
   ProjectMetadata,
-  StoredProjectData,
-  StoredAudioClipMetadata,
   StoredAssetReference,
+  StoredAudioClipMetadata,
+  StoredProjectData,
 } from "../types";
-import { storeProjectAsset, getProjectAsset, deleteProjectAssets } from "../storage";
-import type { AudioClip } from "@/features/audio/types";
-import type { SceneObject } from "@/features/scene/types";
+import {
+  dataUrlToBlob,
+  deleteLocalProject,
+  exportProjectToZip,
+  generateThumbnail,
+  getProjectMetadataList,
+  importProjectFromZip,
+  loadLocalProject,
+  saveProjectLocally,
+} from "../utils";
 
 function cloneJson<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
@@ -115,7 +116,12 @@ async function persistGlbAsset(
   }
 
   try {
-    const stored = await storeProjectAsset(projectId, "glb", buildGlbFilename(obj), blob);
+    const stored = await storeProjectAsset(
+      projectId,
+      "glb",
+      buildGlbFilename(obj),
+      blob,
+    );
     return {
       assetKey: stored.assetKey,
       filename: stored.filename,
@@ -127,7 +133,9 @@ async function persistGlbAsset(
   }
 }
 
-async function persistProjectAssets(project: ProjectData): Promise<StoredProjectData> {
+async function persistProjectAssets(
+  project: ProjectData,
+): Promise<StoredProjectData> {
   await deleteProjectAssets(project.metadata.id);
 
   const glbReferences: Record<string, StoredAssetReference> = {};
@@ -139,7 +147,10 @@ async function persistProjectAssets(project: ProjectData): Promise<StoredProject
     }
   }
 
-  const storedAudio = await persistAudioAsset(project.metadata.id, project.audio.clip);
+  const storedAudio = await persistAudioAsset(
+    project.metadata.id,
+    project.audio.clip,
+  );
 
   return {
     metadata: project.metadata,
@@ -156,7 +167,9 @@ async function persistProjectAssets(project: ProjectData): Promise<StoredProject
   };
 }
 
-async function restoreProjectFromStored(stored: StoredProjectData): Promise<ProjectData> {
+async function restoreProjectFromStored(
+  stored: StoredProjectData,
+): Promise<ProjectData> {
   const objects = cloneJson(stored.scene.objects);
   const keyframes = cloneJson(stored.scene.keyframes);
 
@@ -245,7 +258,8 @@ export function useProjectManager() {
     ): Promise<ProjectData> => {
       const now = new Date().toISOString();
       const id = projectId || currentProjectMetadata?.id || nanoid();
-      const thumbnail = generateThumbnail(canvas) ?? currentProjectMetadata?.thumbnail;
+      const thumbnail =
+        generateThumbnail(canvas) ?? currentProjectMetadata?.thumbnail;
 
       const metadata: ProjectMetadata = {
         id,
@@ -274,7 +288,11 @@ export function useProjectManager() {
 
   const saveProject = useCallback(
     async (name: string, canvas: HTMLCanvasElement | null) => {
-      const projectData = await createProjectData(name, canvas, currentProjectMetadata?.id);
+      const projectData = await createProjectData(
+        name,
+        canvas,
+        currentProjectMetadata?.id,
+      );
       const storedProject = await persistProjectAssets(projectData);
       saveProjectLocally(storedProject);
       setCurrentProjectMetadata(storedProject.metadata);
@@ -287,12 +305,21 @@ export function useProjectManager() {
         ),
       );
     },
-    [createProjectData, currentProjectMetadata, setCurrentProjectMetadata, setRecentProjects],
+    [
+      createProjectData,
+      currentProjectMetadata,
+      setCurrentProjectMetadata,
+      setRecentProjects,
+    ],
   );
 
   const exportProject = useCallback(
     async (name: string, canvas: HTMLCanvasElement | null) => {
-      const projectData = await createProjectData(name, canvas, currentProjectMetadata?.id);
+      const projectData = await createProjectData(
+        name,
+        canvas,
+        currentProjectMetadata?.id,
+      );
       await exportProjectToZip(projectData);
     },
     [createProjectData, currentProjectMetadata],
@@ -347,7 +374,8 @@ export function useProjectManager() {
     const recent = getProjectMetadataList();
     setRecentProjects(
       recent.sort(
-        (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
+        (a, b) =>
+          new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
       ),
     );
   }, [setRecentProjects]);

@@ -7,12 +7,12 @@ import { ComposeBar } from "@/features/compose/compose-bar";
 import { ExportDialog } from "@/features/export";
 import { InspectorPanel } from "@/features/inspector/components/inspector-panel";
 import { useKeyframeApplicator } from "@/features/keyframes/hooks/use-keyframe-applicator";
+import { useProjectManager } from "@/features/project";
+import { SaveDialog } from "@/features/project/components/save-dialog";
 import { SceneTree } from "@/features/scene/components/scene-tree";
 import { EasingEditor } from "@/features/timeline/components/easing-editor";
 import { TimelineControls } from "@/features/timeline/components/timeline-controls";
 import { TimelineTrack } from "@/features/timeline/components/timeline-track";
-import { useProjectManager } from "@/features/project";
-import { SaveDialog } from "@/features/project/components/save-dialog";
 
 function EditorContent() {
   // Apply keyframes to objects based on current time

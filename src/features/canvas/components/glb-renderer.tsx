@@ -1,13 +1,13 @@
 "use client";
 
-import { useGLTF, useAnimations } from "@react-three/drei";
+import { useAnimations, useGLTF } from "@react-three/drei";
 import { useSetAtom } from "jotai";
 import { useEffect, useMemo, useRef } from "react";
-import * as THREE from "three";
 import type { Group } from "three";
+import * as THREE from "three";
 import * as SkeletonUtils from "three/examples/jsm/utils/SkeletonUtils.js";
-import type { GLBObject } from "@/features/scene/types";
 import { updateObjectAtom } from "@/features/scene/state";
+import type { GLBObject } from "@/features/scene/types";
 
 type GLBRendererProps = {
   object: GLBObject;
@@ -42,16 +42,25 @@ function GLBContent({ object, isSelected }: GLBRendererProps) {
     if (!names.length) return;
 
     const animationNames = names;
-    
+
     // Update object with available animations if they changed
-    if (JSON.stringify(animationNames) !== JSON.stringify(object.availableAnimations)) {
+    if (
+      JSON.stringify(animationNames) !==
+      JSON.stringify(object.availableAnimations)
+    ) {
       updateObject(object.id, {
         availableAnimations: animationNames,
         // Set first animation as active if none selected
         activeAnimation: object.activeAnimation || animationNames[0] || null,
       });
     }
-  }, [names, object.availableAnimations, object.activeAnimation, object.id, updateObject]);
+  }, [
+    names,
+    object.availableAnimations,
+    object.activeAnimation,
+    object.id,
+    updateObject,
+  ]);
 
   // Play active animation
   useEffect(() => {
@@ -65,7 +74,7 @@ function GLBContent({ object, isSelected }: GLBRendererProps) {
     // Update the ref to track current animation
     currentAnimationRef.current = object.activeAnimation;
 
-    console.log('[GLB Animation] Switching to:', object.activeAnimation);
+    console.log("[GLB Animation] Switching to:", object.activeAnimation);
 
     // Stop all actions first
     Object.values(actions).forEach((action) => {
@@ -73,17 +82,17 @@ function GLBContent({ object, isSelected }: GLBRendererProps) {
     });
 
     if (!object.activeAnimation) {
-      console.log('[GLB Animation] No active animation, stopping all');
+      console.log("[GLB Animation] No active animation, stopping all");
       return;
     }
 
     const action = actions[object.activeAnimation];
     if (!action) {
-      console.log('[GLB Animation] Action not found:', object.activeAnimation);
+      console.log("[GLB Animation] Action not found:", object.activeAnimation);
       return;
     }
 
-    console.log('[GLB Animation] Playing:', object.activeAnimation);
+    console.log("[GLB Animation] Playing:", object.activeAnimation);
     action.reset();
     action.setLoop(THREE.LoopRepeat, Infinity);
     action.clampWhenFinished = false;
@@ -103,17 +112,17 @@ function GLBContent({ object, isSelected }: GLBRendererProps) {
       groupRef.current.position.set(
         object.transform.position.x,
         object.transform.position.y,
-        object.transform.position.z
+        object.transform.position.z,
       );
       groupRef.current.rotation.set(
         object.transform.rotation.x,
         object.transform.rotation.y,
-        object.transform.rotation.z
+        object.transform.rotation.z,
       );
       groupRef.current.scale.set(
         object.transform.scale.x,
         object.transform.scale.y,
-        object.transform.scale.z
+        object.transform.scale.z,
       );
     }
   }, [object.transform]);
@@ -139,17 +148,17 @@ export function GLBRenderer({ object, isSelected }: GLBRendererProps) {
       groupRef.current.position.set(
         object.transform.position.x,
         object.transform.position.y,
-        object.transform.position.z
+        object.transform.position.z,
       );
       groupRef.current.rotation.set(
         object.transform.rotation.x,
         object.transform.rotation.y,
-        object.transform.rotation.z
+        object.transform.rotation.z,
       );
       groupRef.current.scale.set(
         object.transform.scale.x,
         object.transform.scale.y,
-        object.transform.scale.z
+        object.transform.scale.z,
       );
     }
   }, [object.transform]);
@@ -160,9 +169,9 @@ export function GLBRenderer({ object, isSelected }: GLBRendererProps) {
       <group ref={groupRef}>
         <mesh>
           <boxGeometry args={[1, 1, 1]} />
-          <meshStandardMaterial 
-            color={isSelected ? "#e879f9" : "#666666"} 
-            wireframe 
+          <meshStandardMaterial
+            color={isSelected ? "#e879f9" : "#666666"}
+            wireframe
           />
         </mesh>
       </group>

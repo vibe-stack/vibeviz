@@ -1,12 +1,12 @@
 "use client";
 import { useAtomValue } from "jotai";
+import { Clock, Play, Trash2, Upload } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef } from "react";
-import { Clock, Trash2, Play, Upload } from "lucide-react";
-import Image from "next/image";
-import { recentProjectsAtom } from "@/features/project/state";
 import { useProjectManager } from "@/features/project";
+import { recentProjectsAtom } from "@/features/project/state";
 
 function ProjectCard({
   name,
@@ -50,7 +50,7 @@ function ProjectCard({
             </div>
           </div>
         )}
-        
+
         {/* Hover overlay */}
         <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
           <button
@@ -92,7 +92,8 @@ function ProjectCard({
 export default function Home() {
   const router = useRouter();
   const recentProjects = useAtomValue(recentProjectsAtom);
-  const { loadProject, deleteProject, loadRecentProjects, importProject } = useProjectManager();
+  const { loadProject, deleteProject, loadRecentProjects, importProject } =
+    useProjectManager();
   const importFileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -118,7 +119,9 @@ export default function Home() {
     importFileInputRef.current?.click();
   };
 
-  const handleImportFile = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImportFile = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -128,7 +131,7 @@ export default function Home() {
     } else {
       alert("Failed to import project. Please check the file format.");
     }
-    
+
     // Reset input
     event.target.value = "";
   };
@@ -153,8 +156,8 @@ export default function Home() {
           </div>
           <div className="space-y-6 mb-8">
             <p className="text-lg text-neutral-400 max-w-2xl mx-auto">
-              Create stunning audio-reactive 3D visualizations with keyframe animation, 
-              particles, shaders, and post-processing effects.
+              Create stunning audio-reactive 3D visualizations with keyframe
+              animation, particles, shaders, and post-processing effects.
             </p>
           </div>
           <div className="flex items-center justify-center gap-3">

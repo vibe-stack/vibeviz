@@ -3,8 +3,11 @@
 import { useAtomValue, useSetAtom } from "jotai";
 import { useEffect, useRef } from "react";
 import { keyframesAtom } from "@/features/scene/state";
+import {
+  EASING_CATEGORIES,
+  getEasingFunction,
+} from "@/features/timeline/easing";
 import { selectedKeyframeIdsAtom } from "@/features/timeline/state";
-import { EASING_CATEGORIES, getEasingFunction } from "@/features/timeline/easing";
 
 export function EasingEditor() {
   const keyframes = useAtomValue(keyframesAtom);
@@ -153,10 +156,7 @@ export function EasingEditor() {
   // Group selected keyframes by property for display
   const propertyCounts = new Map<string, number>();
   selectedKeyframes.forEach((kf) => {
-    propertyCounts.set(
-      kf.property,
-      (propertyCounts.get(kf.property) || 0) + 1,
-    );
+    propertyCounts.set(kf.property, (propertyCounts.get(kf.property) || 0) + 1);
   });
 
   const uniqueProperties = Array.from(propertyCounts.keys());
@@ -173,12 +173,14 @@ export function EasingEditor() {
         <div>
           Selected:{" "}
           <span className="text-neutral-300">
-            {selectedKeyframes.length} keyframe{selectedKeyframes.length > 1 ? "s" : ""}
+            {selectedKeyframes.length} keyframe
+            {selectedKeyframes.length > 1 ? "s" : ""}
           </span>
         </div>
         {uniqueProperties.length === 1 ? (
           <div>
-            Property: <span className="text-neutral-300">{uniqueProperties[0]}</span>
+            Property:{" "}
+            <span className="text-neutral-300">{uniqueProperties[0]}</span>
           </div>
         ) : (
           <div>
@@ -187,9 +189,7 @@ export function EasingEditor() {
           </div>
         )}
         {hasMultipleEasings && (
-          <div className="text-amber-400">
-            ⚠ Multiple easings selected
-          </div>
+          <div className="text-amber-400">⚠ Multiple easings selected</div>
         )}
       </div>
 

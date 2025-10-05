@@ -1,10 +1,10 @@
 "use client";
 
-import JSZip from "jszip";
 import { saveAs } from "file-saver";
-import type { ProjectData, ProjectMetadata, StoredProjectData } from "./types";
-import type { SceneObject } from "@/features/scene/types";
+import JSZip from "jszip";
 import type { AudioClip } from "@/features/audio/types";
+import type { SceneObject } from "@/features/scene/types";
+import type { ProjectData, ProjectMetadata, StoredProjectData } from "./types";
 
 const PROJECTS_STORAGE_KEY = "vibeviz_projects";
 
@@ -14,7 +14,9 @@ const PROJECTS_STORAGE_KEY = "vibeviz_projects";
 
 export function saveProjectLocally(project: StoredProjectData): void {
   const projects = getLocalProjects();
-  const existingIndex = projects.findIndex((p) => p.metadata.id === project.metadata.id);
+  const existingIndex = projects.findIndex(
+    (p) => p.metadata.id === project.metadata.id,
+  );
 
   if (existingIndex >= 0) {
     projects[existingIndex] = project;
@@ -90,7 +92,10 @@ export async function exportProjectToZip(
       if (obj.type !== "glb") continue;
 
       const filenameForObj = deriveGlbFilename(obj);
-      const glbBlob = await resolveGlbBlob(obj, project.assets.glbFiles[obj.id]);
+      const glbBlob = await resolveGlbBlob(
+        obj,
+        project.assets.glbFiles[obj.id],
+      );
       if (glbBlob) {
         glbFolder.file(filenameForObj, glbBlob);
       }
@@ -102,7 +107,9 @@ export async function exportProjectToZip(
   saveAs(blob, zipFilename);
 }
 
-export async function importProjectFromZip(file: File): Promise<ProjectData | null> {
+export async function importProjectFromZip(
+  file: File,
+): Promise<ProjectData | null> {
   try {
     const zip = await JSZip.loadAsync(file);
     const projectJsonFile = zip.file("project.json");
@@ -192,7 +199,9 @@ export async function dataUrlToBlob(dataUrl: string): Promise<Blob> {
   return response.blob();
 }
 
-export function generateThumbnail(canvas: HTMLCanvasElement | null): string | undefined {
+export function generateThumbnail(
+  canvas: HTMLCanvasElement | null,
+): string | undefined {
   if (!canvas) return undefined;
   try {
     const thumbnailCanvas = document.createElement("canvas");
@@ -221,7 +230,10 @@ async function resolveAudioBlob(clip: AudioClip): Promise<Blob | null> {
   return fetchBlobFromUrl(clip.url);
 }
 
-async function resolveGlbBlob(obj: SceneObject, storedDataUrl?: string): Promise<Blob | null> {
+async function resolveGlbBlob(
+  obj: SceneObject,
+  storedDataUrl?: string,
+): Promise<Blob | null> {
   if (storedDataUrl?.startsWith("data:")) {
     try {
       return await dataUrlToBlob(storedDataUrl);
@@ -255,6 +267,9 @@ function deriveGlbFilename(obj: SceneObject): string {
   }
 
   const baseName = obj.name || "model";
-  const sanitized = baseName.toLowerCase().replace(/[^a-z0-9]+/gi, "-").replace(/^-+|-+$/g, "");
+  const sanitized = baseName
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/gi, "-")
+    .replace(/^-+|-+$/g, "");
   return `${sanitized || "model"}-${obj.id}.glb`;
 }

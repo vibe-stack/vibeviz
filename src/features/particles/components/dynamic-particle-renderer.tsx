@@ -8,7 +8,11 @@ import * as THREE from "three";
 import { currentTimeAtom } from "@/features/audio/state";
 import { sceneObjectsAtom } from "@/features/scene/state";
 import { activeParticlesAtom } from "../state";
-import type { DynamicParticleObject, Particle, ForceFieldObject } from "../types";
+import type {
+  DynamicParticleObject,
+  ForceFieldObject,
+  Particle,
+} from "../types";
 
 type DynamicParticleRendererProps = {
   object: DynamicParticleObject;
@@ -62,30 +66,36 @@ export function DynamicParticleRenderer({
 
     const particles: Particle[] = [];
     const emissionInterval = 1 / object.emissionRate;
-    
+
     // Calculate how many particles should have been emitted by this time
     const totalParticlesEmitted = Math.floor(timelineTime / emissionInterval);
-    
+
     // Check each potential particle to see if it's still alive
     for (let i = 0; i <= totalParticlesEmitted; i++) {
       const birthTime = i * emissionInterval;
       const age = timelineTime - birthTime;
-      
+
       // Skip if particle is dead
       if (age < 0 || age > object.lifetime) continue;
-      
+
       // Skip if we're at capacity (keep most recent particles)
       if (particles.length >= object.capacity) break;
-      
+
       // Calculate particle state at this age
       const random = getParticleRandom(i);
-      const particle = simulateParticle(i, birthTime, age, random, emitterObject);
-      
+      const particle = simulateParticle(
+        i,
+        birthTime,
+        age,
+        random,
+        emitterObject,
+      );
+
       if (particle) {
         particles.push(particle);
       }
     }
-    
+
     return particles;
   };
 
@@ -118,7 +128,8 @@ export function DynamicParticleRenderer({
     let velZ = object.velocity.z + velJitterZ;
 
     // Particle scale
-    const particleScale = object.minScale + random() * (object.maxScale - object.minScale);
+    const particleScale =
+      object.minScale + random() * (object.maxScale - object.minScale);
 
     // Simulate physics over the particle's lifetime using fixed timestep
     const timeStep = 1 / 60; // 60 FPS timestep for consistency
@@ -145,7 +156,8 @@ export function DynamicParticleRenderer({
 
         if (dist < field.radius && dist > 0.001) {
           const normalizedDist = dist / field.radius;
-          const falloffFactor = 1 - Math.pow(normalizedDist, 1 / (field.falloff + 0.1));
+          const falloffFactor =
+            1 - normalizedDist ** (1 / (field.falloff + 0.1));
           const forceMagnitude =
             field.strength *
             falloffFactor *
@@ -180,7 +192,8 @@ export function DynamicParticleRenderer({
 
         if (dist < field.radius && dist > 0.001) {
           const normalizedDist = dist / field.radius;
-          const falloffFactor = 1 - Math.pow(normalizedDist, 1 / (field.falloff + 0.1));
+          const falloffFactor =
+            1 - normalizedDist ** (1 / (field.falloff + 0.1));
           const forceMagnitude =
             field.strength *
             falloffFactor *
@@ -258,7 +271,7 @@ export function DynamicParticleRenderer({
   // Update particles based on timeline time (deterministic)
   useFrame(() => {
     if (!instancedRef.current || !object.visible || !emitterObject) return;
-    
+
     // Postprocessors don't have transforms, so skip if emitter is one
     if (emitterObject.type === "postprocessor") return;
 
@@ -271,8 +284,16 @@ export function DynamicParticleRenderer({
     for (let i = 0; i < object.capacity; i++) {
       if (i < particles.length) {
         const particle = particles[i];
-        position.set(particle.position.x, particle.position.y, particle.position.z);
-        euler.set(particle.rotation.x, particle.rotation.y, particle.rotation.z);
+        position.set(
+          particle.position.x,
+          particle.position.y,
+          particle.position.z,
+        );
+        euler.set(
+          particle.rotation.x,
+          particle.rotation.y,
+          particle.rotation.z,
+        );
         quaternion.setFromEuler(euler);
         scale.set(particle.scale, particle.scale, particle.scale);
         matrices.compose(position, quaternion, scale);
@@ -293,7 +314,11 @@ export function DynamicParticleRenderer({
     }));
   });
 
-  if (!emitterObject || !particleObject || particleObject.type !== "primitive") {
+  if (
+    !emitterObject ||
+    !particleObject ||
+    particleObject.type !== "primitive"
+  ) {
     return null;
   }
 

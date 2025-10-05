@@ -3,7 +3,9 @@
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import {
   Box,
+  Boxes,
   Camera,
+  Circle,
   Eye,
   EyeOff,
   Layers,
@@ -11,10 +13,8 @@ import {
   Sparkles,
   Trash2,
   Wand2,
-  Zap,
   Wind,
-  Circle,
-  Boxes,
+  Zap,
 } from "lucide-react";
 import {
   removeObjectAtom,
@@ -68,8 +68,8 @@ export function SceneTree() {
       );
     } else {
       // If clicking on already selected object, deselect it
-      setSelectedIds((prev) => 
-        prev.length === 1 && prev[0] === objectId ? [] : [objectId]
+      setSelectedIds((prev) =>
+        prev.length === 1 && prev[0] === objectId ? [] : [objectId],
       );
     }
   };

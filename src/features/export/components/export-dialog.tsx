@@ -1,11 +1,20 @@
 "use client";
 
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
-import { Download, X, Minimize2 } from "lucide-react";
+import { Download, Minimize2, X } from "lucide-react";
 import { useCallback, useState } from "react";
-import { audioClipAtom, audioPlayerAtom, currentTimeAtom, durationAtom } from "@/features/audio/state";
+import {
+  audioClipAtom,
+  audioPlayerAtom,
+  currentTimeAtom,
+  durationAtom,
+} from "@/features/audio/state";
 import { ExportManager } from "../export-manager";
-import { exportProgressAtom, exportSettingsAtom } from "../state";
+import {
+  exportAudioDataAtom,
+  exportProgressAtom,
+  exportSettingsAtom,
+} from "../state";
 import type { Bitrate, Framerate, Quality, Resolution } from "../types";
 
 interface ExportDialogProps {
@@ -22,7 +31,10 @@ export function ExportDialog({ canvas, isOpen, onClose }: ExportDialogProps) {
   const setAudioPlayer = useSetAtom(audioPlayerAtom);
   const duration = useAtomValue(durationAtom);
   const setCurrentTime = useSetAtom(currentTimeAtom);
-  const [exportManager] = useState(() => new ExportManager((p) => setProgress(p)));
+  const setExportAudioData = useSetAtom(exportAudioDataAtom);
+  const [exportManager] = useState(
+    () => new ExportManager((p) => setProgress(p)),
+  );
   const [isMinimized, setIsMinimized] = useState(false);
 
   const handleExport = useCallback(async () => {
@@ -49,7 +61,10 @@ export function ExportDialog({ canvas, isOpen, onClose }: ExportDialogProps) {
         (player) => {
           // Update audio player reference so waveform analyzers connect to export player
           setAudioPlayer(player);
-        }
+        },
+        (data) => {
+          setExportAudioData(data);
+        },
       );
 
       // Success - file saved to disk
@@ -61,7 +76,19 @@ export function ExportDialog({ canvas, isOpen, onClose }: ExportDialogProps) {
     } catch (error) {
       console.error("Export failed:", error);
     }
-  }, [canvas, settings, duration, audioPlayer, audioClip, exportManager, setCurrentTime, setAudioPlayer, progress.state, onClose]);
+  }, [
+    canvas,
+    settings,
+    duration,
+    audioPlayer,
+    audioClip,
+    exportManager,
+    setCurrentTime,
+    setAudioPlayer,
+    setExportAudioData,
+    progress.state,
+    onClose,
+  ]);
 
   const handleCancel = useCallback(() => {
     if (progress.state === "rendering" || progress.state === "encoding") {
@@ -72,7 +99,8 @@ export function ExportDialog({ canvas, isOpen, onClose }: ExportDialogProps) {
 
   if (!isOpen) return null;
 
-  const isExporting = progress.state === "rendering" || progress.state === "encoding";
+  const isExporting =
+    progress.state === "rendering" || progress.state === "encoding";
 
   // Compact popover style when exporting and minimized
   if (isExporting && isMinimized) {
@@ -89,17 +117,29 @@ export function ExportDialog({ canvas, isOpen, onClose }: ExportDialogProps) {
               onClick={() => setIsMinimized(false)}
               className="text-neutral-400 hover:text-neutral-200 transition-colors"
             >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
                 <title>Expand</title>
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"
+                />
               </svg>
             </button>
           </div>
-          
+
           <div className="space-y-2">
             <div className="flex justify-between text-xs">
               <span className="text-neutral-400">
-                {progress.state === "rendering" ? "Rendering frames..." : "Encoding..."}
+                {progress.state === "rendering"
+                  ? "Rendering frames..."
+                  : "Encoding..."}
               </span>
               <span className="text-neutral-300 font-mono">
                 {progress.currentFrame}/{progress.totalFrames}
@@ -122,15 +162,17 @@ export function ExportDialog({ canvas, isOpen, onClose }: ExportDialogProps) {
 
   // Full dialog
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm"
-         onClick={(e) => {
-           if (e.target === e.currentTarget && !isExporting) {
-             onClose();
-           }
-         }}
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm"
+      onClick={(e) => {
+        if (e.target === e.currentTarget && !isExporting) {
+          onClose();
+        }
+      }}
     >
-      <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-6 w-[500px] shadow-2xl"
-           onClick={(e) => e.stopPropagation()}
+      <div
+        className="bg-neutral-900 border border-neutral-800 rounded-2xl p-6 w-[500px] shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-semibold flex items-center gap-2">
@@ -168,20 +210,27 @@ export function ExportDialog({ canvas, isOpen, onClose }: ExportDialogProps) {
         <div className="space-y-4">
           {/* Info */}
           <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg text-blue-300 text-xs">
-            <strong>Tip:</strong> The canvas will be scaled to your chosen resolution while maintaining aspect ratio.
-            Audio will be included! 🎵 You can minimize this dialog to see the render in action.
+            <strong>Tip:</strong> The canvas will be scaled to your chosen
+            resolution while maintaining aspect ratio. Audio will be included!
+            🎵 You can minimize this dialog to see the render in action.
           </div>
 
           {/* Resolution */}
           <div>
-            <label htmlFor="resolution" className="block text-sm font-medium text-neutral-300 mb-2">
+            <label
+              htmlFor="resolution"
+              className="block text-sm font-medium text-neutral-300 mb-2"
+            >
               Resolution
             </label>
             <select
               id="resolution"
               value={settings.resolution}
               onChange={(e) =>
-                setSettings({ ...settings, resolution: e.target.value as Resolution })
+                setSettings({
+                  ...settings,
+                  resolution: e.target.value as Resolution,
+                })
               }
               disabled={isExporting}
               className="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 text-neutral-100 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
@@ -195,14 +244,20 @@ export function ExportDialog({ canvas, isOpen, onClose }: ExportDialogProps) {
 
           {/* Framerate */}
           <div>
-            <label htmlFor="framerate" className="block text-sm font-medium text-neutral-300 mb-2">
+            <label
+              htmlFor="framerate"
+              className="block text-sm font-medium text-neutral-300 mb-2"
+            >
               Framerate
             </label>
             <select
               id="framerate"
               value={settings.framerate}
               onChange={(e) =>
-                setSettings({ ...settings, framerate: Number(e.target.value) as Framerate })
+                setSettings({
+                  ...settings,
+                  framerate: Number(e.target.value) as Framerate,
+                })
               }
               disabled={isExporting}
               className="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 text-neutral-100 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
@@ -214,14 +269,20 @@ export function ExportDialog({ canvas, isOpen, onClose }: ExportDialogProps) {
 
           {/* Bitrate */}
           <div>
-            <label htmlFor="bitrate" className="block text-sm font-medium text-neutral-300 mb-2">
+            <label
+              htmlFor="bitrate"
+              className="block text-sm font-medium text-neutral-300 mb-2"
+            >
               Bitrate
             </label>
             <select
               id="bitrate"
               value={settings.bitrate}
               onChange={(e) =>
-                setSettings({ ...settings, bitrate: Number(e.target.value) as Bitrate })
+                setSettings({
+                  ...settings,
+                  bitrate: Number(e.target.value) as Bitrate,
+                })
               }
               disabled={isExporting}
               className="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 text-neutral-100 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
@@ -234,7 +295,10 @@ export function ExportDialog({ canvas, isOpen, onClose }: ExportDialogProps) {
 
           {/* Quality */}
           <div>
-            <label htmlFor="quality" className="block text-sm font-medium text-neutral-300 mb-2">
+            <label
+              htmlFor="quality"
+              className="block text-sm font-medium text-neutral-300 mb-2"
+            >
               Quality: {settings.quality}%
             </label>
             <input
@@ -245,7 +309,10 @@ export function ExportDialog({ canvas, isOpen, onClose }: ExportDialogProps) {
               step={10}
               value={settings.quality}
               onChange={(e) =>
-                setSettings({ ...settings, quality: Number(e.target.value) as Quality })
+                setSettings({
+                  ...settings,
+                  quality: Number(e.target.value) as Quality,
+                })
               }
               disabled={isExporting}
               className="w-full accent-blue-500 disabled:opacity-50"
@@ -261,7 +328,9 @@ export function ExportDialog({ canvas, isOpen, onClose }: ExportDialogProps) {
             <div className="pt-4 border-t border-neutral-800">
               <div className="flex justify-between text-sm mb-2">
                 <span className="text-neutral-400">
-                  {progress.state === "rendering" ? "Rendering..." : "Encoding..."}
+                  {progress.state === "rendering"
+                    ? "Rendering..."
+                    : "Encoding..."}
                 </span>
                 <span className="text-neutral-300">
                   {progress.currentFrame} / {progress.totalFrames} frames

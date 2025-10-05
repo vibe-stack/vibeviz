@@ -11,6 +11,7 @@ import {
   Circle,
   Cylinder,
   Download,
+  Home,
   Layers,
   Lightbulb,
   Rocket,
@@ -19,33 +20,32 @@ import {
   Sun,
   Triangle,
   Waves,
-  Zap,
   Wind,
-  Home,
+  Zap,
 } from "lucide-react";
 import Link from "next/link";
 import type * as React from "react";
 import { useRef } from "react";
 import { createShaderObject } from "@/features/shaders/factories/shader-factory";
 import {
+  createAudioParticle,
+  createDynamicParticle,
+  createForceField,
+} from "../particles/factories";
+import {
   createCamera,
   createPrimitive,
   createWaveformInstancer,
   createWaveformLines,
 } from "../scene/defaults";
-import { createLight } from "../scene/factories/light-factory";
 import { createGLB } from "../scene/factories/glb-factory";
+import { createLight } from "../scene/factories/light-factory";
 import {
   createAfterImage,
   createBloom,
   createChromaticAberration,
   createDotScreen,
 } from "../scene/factories/postprocessor-factory";
-import {
-  createAudioParticle,
-  createDynamicParticle,
-  createForceField,
-} from "../particles/factories";
 import { addObjectAtom } from "../scene/state";
 
 interface ComposeBarProps {
@@ -82,7 +82,7 @@ export function ComposeBar({ onExport, onSave, onExportZip }: ComposeBarProps) {
 
     // Create a local URL for the file
     const url = URL.createObjectURL(file);
-    
+
     // Create GLB object with the file URL
     const glbObject = createGLB(file.name.replace(/\.(glb|gltf)$/i, ""));
     addObject({
@@ -106,7 +106,7 @@ export function ComposeBar({ onExport, onSave, onExportZip }: ComposeBarProps) {
       </Link>
 
       <div className="w-px h-6 bg-neutral-700" />
-      
+
       {/* Hidden file input for GLB */}
       <input
         ref={glbFileInputRef}

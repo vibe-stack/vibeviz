@@ -2,8 +2,8 @@
 
 import { useAtomValue, useSetAtom } from "jotai";
 import { DragInput } from "@/components/ui/drag-input";
-import { sceneObjectsAtom, updateObjectAtom } from "@/features/scene/state";
 import type { DynamicParticleObject } from "@/features/particles/types";
+import { sceneObjectsAtom, updateObjectAtom } from "@/features/scene/state";
 import { TransformSection } from "./transform-section";
 
 type DynamicParticleInspectorProps = {
@@ -436,9 +436,7 @@ export function DynamicParticleInspector({
           <span className="text-xs text-neutral-400 w-32">Random Seed</span>
           <DragInput
             value={object.seed}
-            onChange={(v) =>
-              updateObject(object.id, { seed: Math.round(v) })
-            }
+            onChange={(v) => updateObject(object.id, { seed: Math.round(v) })}
             step={1}
             precision={0}
             min={0}
