@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useSetAtom } from "jotai";
 import { DragInput } from "@/components/ui/drag-input";
 import { BlendModeSection } from "@/features/inspector/components";
@@ -16,6 +17,7 @@ export function RainbowInspector({
   controls,
 }: RainbowInspectorProps) {
   const updateObject = useSetAtom(updateObjectAtom);
+  const [localColors, setLocalColors] = useState<Record<number, string>>({});
 
   const updateControl = <K extends keyof RainbowControls>(
     key: K,
@@ -32,6 +34,12 @@ export function RainbowInspector({
     updateControl("colorPalette", {
       ...controls.colorPalette,
       colors: newColors,
+    });
+    // Clear local state after update
+    setLocalColors((prev) => {
+      const newLocal = { ...prev };
+      delete newLocal[index];
+      return newLocal;
     });
   };
 
@@ -134,11 +142,23 @@ export function RainbowInspector({
                   >
                     <input
                       type="color"
-                      value={color}
-                      onChange={(e) =>
-                        updatePaletteColor(index, e.target.value)
-                      }
-                      className="w-8 h-6 rounded bg-neutral-700 border border-neutral-600"
+                      value={localColors[index] ?? color}
+                      onChange={(e) => {
+                        // Update local state for immediate visual feedback
+                        const newColor = e.target.value;
+                        setLocalColors((prev) => ({
+                          ...prev,
+                          [index]: newColor,
+                        }));
+                      }}
+                      onBlur={(e) => {
+                        // Update global state when done
+                        const finalColor = e.target.value;
+                        if (finalColor) {
+                          updatePaletteColor(index, finalColor);
+                        }
+                      }}
+                      className="w-8 h-6 rounded bg-neutral-700 border border-neutral-600 cursor-pointer"
                     />
                     <span className="text-xs text-neutral-400 flex-1">
                       Color {index + 1}
@@ -223,6 +243,24 @@ export function RainbowInspector({
             step={0.1}
             precision={1}
           />
+          <DragInput
+            label="Turbulence"
+            value={controls.turbulence}
+            onChange={(v) => updateControl("turbulence", v)}
+            min={0}
+            max={10}
+            step={0.1}
+            precision={1}
+          />
+          <DragInput
+            label="Cells"
+            value={controls.cells}
+            onChange={(v) => updateControl("cells", v)}
+            min={0}
+            max={10}
+            step={0.1}
+            precision={1}
+          />
         </div>
       </div>
 
@@ -297,6 +335,28 @@ export function RainbowInspector({
                     className="rounded bg-neutral-700 border-neutral-600"
                   />
                   <span>Affects Brightness</span>
+                </label>
+                <label className="flex items-center gap-2 text-xs text-neutral-400">
+                  <input
+                    type="checkbox"
+                    checked={controls.audioAffectsTurbulence}
+                    onChange={(e) =>
+                      updateControl("audioAffectsTurbulence", e.target.checked)
+                    }
+                    className="rounded bg-neutral-700 border-neutral-600"
+                  />
+                  <span>Affects Turbulence</span>
+                </label>
+                <label className="flex items-center gap-2 text-xs text-neutral-400">
+                  <input
+                    type="checkbox"
+                    checked={controls.audioAffectsCells}
+                    onChange={(e) =>
+                      updateControl("audioAffectsCells", e.target.checked)
+                    }
+                    className="rounded bg-neutral-700 border-neutral-600"
+                  />
+                  <span>Affects Cells</span>
                 </label>
               </div>
               <DragInput

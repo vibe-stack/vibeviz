@@ -33,6 +33,54 @@ const hsl = Fn(([h, s, l]: any[]) => {
   return vec3(r, g, b);
 });
 
+// Simplex-style noise for organic turbulence
+const hash = Fn(([p]: any[]) => {
+  return sin(p.dot(vec2(127.1, 311.7))).mul(43758.5453123).fract();
+});
+
+const noise2D = Fn(([p]: any[]) => {
+  const i = floor(p);
+  const f = fract(p);
+  
+  // Smooth interpolation
+  const u = f.mul(f).mul(f.mul(f.mul(6).sub(15)).add(10));
+  
+  const a = hash(i);
+  const b = hash(i.add(vec2(1.0, 0.0)));
+  const c = hash(i.add(vec2(0.0, 1.0)));
+  const d = hash(i.add(vec2(1.0, 1.0)));
+  
+  return mix(mix(a, b, u.x), mix(c, d, u.x), u.y).mul(2.0).sub(1.0);
+});
+
+// Fractal Brownian Motion for turbulent noise
+const fbm = Fn(([p]: any[]) => {
+  let value: any = uniform(0.0);
+  let amplitude: any = uniform(0.5);
+  let frequency: any = uniform(1.0);
+  const scaledP = p.mul(frequency);
+  
+  // First octave
+  value = noise2D(scaledP).mul(amplitude);
+  frequency = frequency.mul(2.0);
+  amplitude = amplitude.mul(0.5);
+  
+  // Second octave
+  value = value.add(noise2D(scaledP.mul(frequency.div(1.0))).mul(amplitude));
+  frequency = frequency.mul(2.0);
+  amplitude = amplitude.mul(0.5);
+  
+  // Third octave
+  value = value.add(noise2D(scaledP.mul(frequency.div(1.0))).mul(amplitude));
+  frequency = frequency.mul(2.0);
+  amplitude = amplitude.mul(0.5);
+  
+  // Fourth octave (conditional based on octaves param, but we'll always do 4 for now)
+  value = value.add(noise2D(scaledP.mul(frequency.div(1.0))).mul(amplitude));
+  
+  return value;
+});
+
 type NodeMaterialInstance = THREE.Material & {
   fragmentNode: unknown;
   lights: boolean;
@@ -52,12 +100,16 @@ export type RainbowMaterialHandle = {
     contrast: ReturnType<typeof uniform>;
     waveAmplitude: ReturnType<typeof uniform>;
     waveFrequency: ReturnType<typeof uniform>;
+    turbulence: ReturnType<typeof uniform>;
+    cells: ReturnType<typeof uniform>;
     audioInfluence: ReturnType<typeof uniform>;
     audioAffectsSpeed: ReturnType<typeof uniform>;
     audioAffectsAmplitude: ReturnType<typeof uniform>;
     audioAffectsScale: ReturnType<typeof uniform>;
     audioAffectsHue: ReturnType<typeof uniform>;
     audioAffectsBrightness: ReturnType<typeof uniform>;
+    audioAffectsTurbulence: ReturnType<typeof uniform>;
+    audioAffectsCells: ReturnType<typeof uniform>;
     useCustomPalette: ReturnType<typeof uniform>;
     paletteColors: ReturnType<typeof uniform>[];
   };
@@ -84,6 +136,8 @@ export function createRainbowMaterial(
   const contrast = uniform(controls.contrast);
   const waveAmplitude = uniform(controls.waveAmplitude);
   const waveFrequency = uniform(controls.waveFrequency);
+  const turbulence = uniform(controls.turbulence);
+  const cells = uniform(controls.cells);
   const audioInfluence = uniform(controls.audioInfluence);
 
   // Individual audio reactivity toggles
@@ -94,6 +148,8 @@ export function createRainbowMaterial(
   const audioAffectsBrightness = uniform(
     controls.audioAffectsBrightness ? 1 : 0,
   );
+  const audioAffectsTurbulence = uniform(controls.audioAffectsTurbulence ? 1 : 0);
+  const audioAffectsCells = uniform(controls.audioAffectsCells ? 1 : 0);
 
   const useCustomPalette = uniform(controls.useCustomPalette ? 1 : 0);
 
@@ -118,10 +174,20 @@ export function createRainbowMaterial(
     const scaleMod = audioAffectsScale.mul(audioMod).mul(0.5);
     const hueShiftMod = audioAffectsHue.mul(audioMod).mul(0.3);
     const brightMod = audioAffectsBrightness.mul(audioMod).mul(0.3);
+    const turbulenceMod = audioAffectsTurbulence.mul(audioMod).mul(1.0);
+    const cellsMod = audioAffectsCells.mul(audioMod).mul(1.0);
 
     const t = time.mul(speed).mul(0.1).add(speedMod);
     const dynamicScale = scale.add(scaleMod);
     const dynamicAmplitude = waveAmplitude.add(ampMod);
+    const dynamicTurbulence = turbulence.add(turbulenceMod);
+    const dynamicCells = cells.add(cellsMod);
+
+    // Generate turbulent noise using FBM
+    const turbulenceValue = fbm(coords.mul(5.0)).mul(dynamicTurbulence.mul(0.1));
+    
+    // Generate cellular/grid pattern
+    const cellsValue = noise2D(coords.mul(10.0).add(t.mul(0.5))).mul(dynamicCells.mul(0.1));
 
     // Waves pattern
     const wavesHue = Fn(() => {
@@ -181,7 +247,9 @@ export function createRainbowMaterial(
       .add(spiralHue.mul(isSpiral))
       .add(radialHue.mul(isRadial))
       .add(classicHue.mul(isWaves.add(isSpiral).add(isRadial).oneMinus()))
-      .add(hueShiftMod); // Add audio hue shift
+      .add(hueShiftMod) // Add audio hue shift
+      .add(turbulenceValue) // Add turbulent noise
+      .add(cellsValue); // Add cellular/grid pattern
 
     // Sample from custom palette if enabled
     const numPaletteColors = paletteColors.length;
@@ -253,6 +321,10 @@ export function createRainbowMaterial(
       waveAmplitude.value = newControls.waveAmplitude;
     if (newControls.waveFrequency !== undefined)
       waveFrequency.value = newControls.waveFrequency;
+    if (newControls.turbulence !== undefined)
+      turbulence.value = newControls.turbulence;
+    if (newControls.cells !== undefined)
+      cells.value = newControls.cells;
     if (newControls.audioInfluence !== undefined)
       audioInfluence.value = newControls.audioInfluence;
     if (newControls.audioAffectsSpeed !== undefined)
@@ -265,6 +337,10 @@ export function createRainbowMaterial(
       audioAffectsHue.value = newControls.audioAffectsHue ? 1 : 0;
     if (newControls.audioAffectsBrightness !== undefined)
       audioAffectsBrightness.value = newControls.audioAffectsBrightness ? 1 : 0;
+    if (newControls.audioAffectsTurbulence !== undefined)
+      audioAffectsTurbulence.value = newControls.audioAffectsTurbulence ? 1 : 0;
+    if (newControls.audioAffectsCells !== undefined)
+      audioAffectsCells.value = newControls.audioAffectsCells ? 1 : 0;
     if (newControls.useCustomPalette !== undefined) {
       useCustomPalette.value = newControls.useCustomPalette ? 1 : 0;
     }
@@ -288,12 +364,16 @@ export function createRainbowMaterial(
       contrast,
       waveAmplitude,
       waveFrequency,
+      turbulence,
+      cells,
       audioInfluence,
       audioAffectsSpeed,
       audioAffectsAmplitude,
       audioAffectsScale,
       audioAffectsHue,
       audioAffectsBrightness,
+      audioAffectsTurbulence,
+      audioAffectsCells,
       useCustomPalette,
       paletteColors,
     },

@@ -46,6 +46,8 @@ const defaultRainbowControls = (): RainbowControls => ({
   contrast: 1.2,
   waveAmplitude: 0.5,
   waveFrequency: 3.0,
+  turbulence: 0.0,
+  cells: 0.0,
   audioReactive: true,
   audioInfluence: 1.0,
   audioAffectsSpeed: true,
@@ -53,6 +55,8 @@ const defaultRainbowControls = (): RainbowControls => ({
   audioAffectsScale: false,
   audioAffectsHue: false,
   audioAffectsBrightness: false,
+  audioAffectsTurbulence: false,
+  audioAffectsCells: false,
   useCustomPalette: false,
   colorPalette: {
     colors: [

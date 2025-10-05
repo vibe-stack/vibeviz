@@ -70,6 +70,24 @@ export function PrimitiveRenderer({ object }: PrimitiveRendererProps) {
             ]}
           />
         );
+      case "plane":
+        return <planeGeometry args={[2, 2, 1, 1]} />;
+      case "sphere":
+        return <sphereGeometry args={[0.5, 32, 32]} />;
+      case "triangularPrism":
+        return <cylinderGeometry args={[0.5, 0.5, 1, 3]} />;
+      case "octahedron":
+        return <octahedronGeometry args={[0.5, 0]} />;
+      case "tetrahedron":
+        return <tetrahedronGeometry args={[0.5, 0]} />;
+      case "hexagonPrism":
+        return <cylinderGeometry args={[0.5, 0.5, 1, 6]} />;
+      case "hexagonalPyramid":
+        return <coneGeometry args={[0.5, 1, 6]} />;
+      case "arrow":
+        return <coneGeometry args={[0.3, 1.5, 8]} />;
+      case "star":
+        return <octahedronGeometry args={[0.5, 1]} />;
     }
   };
 

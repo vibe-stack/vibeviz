@@ -63,6 +63,9 @@ export type RainbowControls = {
   // Wave settings (for wave patterns)
   waveAmplitude: number;
   waveFrequency: number;
+  // Effect settings
+  turbulence: number; // 0-10, adds organic noise/turbulence
+  cells: number; // 0-10, adds grid/cellular pattern
   // Audio reactive - individual toggles
   audioReactive: boolean;
   audioInfluence: number;
@@ -71,6 +74,8 @@ export type RainbowControls = {
   audioAffectsScale: boolean;
   audioAffectsHue: boolean;
   audioAffectsBrightness: boolean;
+  audioAffectsTurbulence: boolean;
+  audioAffectsCells: boolean;
   // Blending
   blendMode: BlendMode;
   opacity: number; // 0-1

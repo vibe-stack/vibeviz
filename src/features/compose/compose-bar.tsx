@@ -11,11 +11,14 @@ import {
   Circle,
   Cylinder,
   Download,
+  Hexagon,
   Home,
   Layers,
   Lightbulb,
+  MoveUp,
   Rocket,
   Sparkles,
+  Square,
   Stars,
   Sun,
   Triangle,
@@ -133,10 +136,31 @@ export function ComposeBar({ onExport, onSave, onExportZip }: ComposeBarProps) {
               </Menu.Item>
               <Menu.Item
                 className={menuItemClass}
+                onClick={() => addObject(createPrimitive("sphere"))}
+              >
+                <Circle className="w-3.5 h-3.5" />
+                Sphere
+              </Menu.Item>
+              <Menu.Item
+                className={menuItemClass}
+                onClick={() => addObject(createPrimitive("plane"))}
+              >
+                <Square className="w-3.5 h-3.5" />
+                Plane
+              </Menu.Item>
+              <Menu.Item
+                className={menuItemClass}
                 onClick={() => addObject(createPrimitive("pyramid"))}
               >
                 <Triangle className="w-3.5 h-3.5" />
                 Pyramid
+              </Menu.Item>
+              <Menu.Item
+                className={menuItemClass}
+                onClick={() => addObject(createPrimitive("cylinder"))}
+              >
+                <Cylinder className="w-3.5 h-3.5" />
+                Cylinder
               </Menu.Item>
               <Menu.Item
                 className={menuItemClass}
@@ -147,10 +171,52 @@ export function ComposeBar({ onExport, onSave, onExportZip }: ComposeBarProps) {
               </Menu.Item>
               <Menu.Item
                 className={menuItemClass}
-                onClick={() => addObject(createPrimitive("cylinder"))}
+                onClick={() => addObject(createPrimitive("triangularPrism"))}
               >
-                <Cylinder className="w-3.5 h-3.5" />
-                Cylinder
+                <Triangle className="w-3.5 h-3.5" />
+                Triangular Prism
+              </Menu.Item>
+              <Menu.Item
+                className={menuItemClass}
+                onClick={() => addObject(createPrimitive("octahedron"))}
+              >
+                <Box className="w-3.5 h-3.5" />
+                Octahedron
+              </Menu.Item>
+              <Menu.Item
+                className={menuItemClass}
+                onClick={() => addObject(createPrimitive("tetrahedron"))}
+              >
+                <Triangle className="w-3.5 h-3.5" />
+                Tetrahedron
+              </Menu.Item>
+              <Menu.Item
+                className={menuItemClass}
+                onClick={() => addObject(createPrimitive("hexagonPrism"))}
+              >
+                <Hexagon className="w-3.5 h-3.5" />
+                Hexagon Prism
+              </Menu.Item>
+              <Menu.Item
+                className={menuItemClass}
+                onClick={() => addObject(createPrimitive("hexagonalPyramid"))}
+              >
+                <Hexagon className="w-3.5 h-3.5" />
+                Hexagonal Pyramid
+              </Menu.Item>
+              <Menu.Item
+                className={menuItemClass}
+                onClick={() => addObject(createPrimitive("arrow"))}
+              >
+                <MoveUp className="w-3.5 h-3.5" />
+                Arrow
+              </Menu.Item>
+              <Menu.Item
+                className={menuItemClass}
+                onClick={() => addObject(createPrimitive("star"))}
+              >
+                <Stars className="w-3.5 h-3.5" />
+                Star
               </Menu.Item>
             </Menu.Popup>
           </Menu.Positioner>

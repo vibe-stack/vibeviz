@@ -21,7 +21,20 @@ export type Material = {
   emissiveIntensity: number;
 };
 
-export type PrimitiveType = "cube" | "pyramid" | "torus" | "cylinder";
+export type PrimitiveType = 
+  | "cube" 
+  | "pyramid" 
+  | "torus" 
+  | "cylinder"
+  | "plane"
+  | "sphere"
+  | "triangularPrism"
+  | "octahedron"
+  | "tetrahedron"
+  | "hexagonPrism"
+  | "hexagonalPyramid"
+  | "arrow"
+  | "star";
 
 export type BaseObject = {
   id: string;
