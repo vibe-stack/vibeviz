@@ -144,6 +144,7 @@ export function generateExportAudioData(
   const oneMinusSmoothing = 1 - smoothing;
 
   const data = new Float32Array(totalFrames * binCount);
+  let peakDecibels = -Infinity;
 
   for (let frameIndex = 0; frameIndex < totalFrames; frameIndex++) {
     const startSample = Math.floor(frameIndex * hopSize);
@@ -177,6 +178,16 @@ export function generateExportAudioData(
         smoothing * smoothed[bin] + oneMinusSmoothing * clamped;
       smoothed[bin] = smoothedValue;
       data[frameOffset + bin] = smoothedValue;
+      peakDecibels = Math.max(peakDecibels, smoothedValue);
+    }
+  }
+
+  // Calibrate overall loudness so offline analysis matches realtime playback intensity
+  const TARGET_PEAK_DB = -8; // Aim for healthy headroom while preserving punch
+  if (Number.isFinite(peakDecibels) && peakDecibels < TARGET_PEAK_DB) {
+    const calibrationOffset = TARGET_PEAK_DB - peakDecibels;
+    for (let i = 0; i < data.length; i++) {
+      data[i] = Math.min(MAX_DECIBELS, data[i] + calibrationOffset);
     }
   }
 
